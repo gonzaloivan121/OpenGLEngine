@@ -1,0 +1,46 @@
+Settings:
+  Application:
+    Name: OpenGL Engine
+    Version:
+      Major: 0
+      Minor: 0
+      Patch: 0
+    Maximized: true
+    DebugMode: false
+    EscapeClosesApp: false
+    LogToFile: false
+  Editor:
+    Appearance:
+      Theme: Excellency
+      FontSize: 13
+      UIScale: 1
+      ColumnWidth: 150
+    Windows:
+      ShowAbout: false
+      ShowInspector: true
+      ShowProject: true
+      ShowSettings: false
+      ShowStatistics: false
+      ShowViewport: true
+    AutoSaveInterval: 10
+  Rendering:
+    Engine: OpenGL
+    Resolution:
+      Width: 1920
+      Height: 1080
+      Scale: 1
+    Mode: Windowed
+    VSync: true
+    LockFramerate: false
+    TargetFrameRate: 0
+  Navigation:
+    MovementSpeed: 2
+    FastMovementSpeed: 5
+    RotationSpeed: 2
+    ZoomSpeed: 2
+    Smoothing: 5
+    InvertZoom: false
+  Export:
+    ImageFormat: PNG
+    ImageQuality: 100
+    Folder: Export
