@@ -17,23 +17,35 @@ OpenGLFramebuffer::~OpenGLFramebuffer() {
 void OpenGLFramebuffer::Invalidate() {
 	Log::Trace("OpenGLFramebuffer::Invalidate - Invalidating the OpenGL Framebuffer");
 
-	// If the Framebuffer exists, we delete it and it's attachments
+	// If the Framebuffer exists, we delete it and its attachments
 	if (m_Handle) {
 		glDeleteFramebuffers(1, &m_Handle);
-
-		m_ColorAttachment = nullptr;
+		m_ColorAttachments.clear();
 		m_DepthAttachment = nullptr;
 	}
 
 	// Create the framebuffer
 	glCreateFramebuffers(1, &m_Handle);
 
-	// Create the Color attachment only if it has a texture format
-	if (m_Specification.ColorAttachmentSpecification.Format != TextureFormat::None) {
-		m_Specification.ColorAttachmentSpecification.Width = m_Specification.Width;
-		m_Specification.ColorAttachmentSpecification.Height = m_Specification.Height;
-		m_ColorAttachment = Texture2D::Create(m_Specification.ColorAttachmentSpecification);
-		glNamedFramebufferTexture(m_Handle, GL_COLOR_ATTACHMENT0, m_ColorAttachment->GetHandle(), 0);
+	// Create a color attachment for each specification in the vector
+	if (!m_Specification.ColorAttachments.empty()) {
+		m_ColorAttachments.resize(m_Specification.ColorAttachments.size());
+		std::vector<GLenum> drawBuffers;
+		drawBuffers.reserve(m_Specification.ColorAttachments.size());
+
+		for (uint32_t i = 0; i < static_cast<uint32_t>(m_Specification.ColorAttachments.size()); ++i) {
+			auto& spec = m_Specification.ColorAttachments[i];
+			spec.Width = m_Specification.Width;
+			spec.Height = m_Specification.Height;
+			m_ColorAttachments[i] = Texture2D::Create(spec);
+			glNamedFramebufferTexture(m_Handle, GL_COLOR_ATTACHMENT0 + i, m_ColorAttachments[i]->GetHandle(), 0);
+			drawBuffers.push_back(GL_COLOR_ATTACHMENT0 + i);
+		}
+
+		glNamedFramebufferDrawBuffers(m_Handle, static_cast<GLsizei>(drawBuffers.size()), drawBuffers.data());
+	} else {
+		glNamedFramebufferDrawBuffer(m_Handle, GL_NONE);
+		glNamedFramebufferReadBuffer(m_Handle, GL_NONE);
 	}
 
 	// Create the Depth attachment only if there is one
@@ -44,15 +56,24 @@ void OpenGLFramebuffer::Invalidate() {
 		glNamedFramebufferTexture(m_Handle, GL_DEPTH_STENCIL_ATTACHMENT, m_DepthAttachment->GetHandle(), 0);
 	}
 
-	if (m_Specification.ColorAttachmentSpecification.Format == TextureFormat::None) {
-		glNamedFramebufferDrawBuffer(m_Handle, GL_NONE);
-		glNamedFramebufferReadBuffer(m_Handle, GL_NONE);
-	}
-
 	// Check if the Framebuffer has been created successfully
 	if (glCheckNamedFramebufferStatus(m_Handle, GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) {
 		Log::Error("OpenGLFramebuffer::Invalidate - Framebuffer is not complete");
 	}
+}
+
+Ref<Texture2D> OpenGLFramebuffer::GetColorAttachment(uint32_t index) const {
+	if (index < static_cast<uint32_t>(m_ColorAttachments.size())) {
+		return m_ColorAttachments[index];
+	}
+	return nullptr;
+}
+
+uint64_t OpenGLFramebuffer::GetColorAttachmentRendererID(uint32_t index) const {
+	if (index < static_cast<uint32_t>(m_ColorAttachments.size()) && m_ColorAttachments[index]) {
+		return m_ColorAttachments[index]->GetHandle();
+	}
+	return 0;
 }
 
 void OpenGLFramebuffer::Bind() const {
