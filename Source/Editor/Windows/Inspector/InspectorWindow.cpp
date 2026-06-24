@@ -2,9 +2,33 @@
 
 #include "Core/Log/Log.h"
 
+#include "ECS/ComponentRegistry.h"
+#include "ECS/Serialization/Material/MaterialSerializer.h"
+
 #include "Editor/UI.h"
 
 #include "Utilities/Utilities.h"
+
+#include <vector>
+
+namespace {
+	void RegisterComponentsIfNeeded() {
+		static bool s_Registered = false;
+		if (s_Registered) {
+			return;
+		}
+
+		ComponentRegistry::Register<NameComponent>("Name");
+		ComponentRegistry::Register<TransformComponent>("Transform");
+		ComponentRegistry::Register<LightComponent>("Light");
+		ComponentRegistry::Register<CameraComponent>("Camera");
+		ComponentRegistry::Register<MaterialComponent>("Material");
+		ComponentRegistry::Register<MeshComponent>("Mesh");
+		ComponentRegistry::Register<ShaderComponent>("Shader");
+
+		s_Registered = true;
+	}
+}
 
 void InspectorWindow::OnCreate() {
 	Log::Trace("InspectorWindow::OnCreate - Creating Inspector Window");
@@ -12,6 +36,7 @@ void InspectorWindow::OnCreate() {
 
 void InspectorWindow::OnAttach() {
 	Log::Trace("InspectorWindow::OnAttach - Attaching Inspector Window");
+	RegisterComponentsIfNeeded();
 }
 
 void InspectorWindow::OnDetach() {
@@ -26,148 +51,173 @@ void InspectorWindow::OnUIRender() {
 	}
 
 	if (ImGui::Begin("Inspector", &m_IsOpen)) {
-		//if (UI::CollapsingHeader("Fractal")) {
-		//	UI::Dropdown("Algorithm", m_FractalAlgorithms, mandelbrot.Algorithm, Utilities::FractalAlgorithmToString);
-		//	UI::Tooltip("Changes the core mathematical formula used to generate the fractal.");
+		if (!m_Scene.IsValidEntity(m_SelectedEntityID)) {
+			ImGui::Text("No entity selected.");
+			ImGui::End();
+			return;
+		}
 
-		//	UI::DragFloat("Power", mandelbrot.Power, 0.01f, 10.0f, 0.01f);
-		//	UI::Tooltip("The exponent 'n' in the formula z = z^n + c.\nCreates different fractal shapes (Multibrot sets).\nCan be controlled using the 'Page Up' and 'Page Down' keys.");
+		auto entity = m_Scene.GetEntity(m_SelectedEntityID);
 
-		//	UI::SliderInt("Max Iterations", mandelbrot.MaxIterations, 32, 8192);
-		//	UI::Tooltip("The maximum number of calculations per pixel.\nHigher values reveal more detail but are slower.");
+		if (auto* name = entity.GetComponent<NameComponent>()) {
+			UI::InputText("Name", name->Name);
+		}
 
-		//	UI::DragFloat("Bailout Radius", mandelbrot.Bailout, 4.0f, 65536.0f);
-		//	UI::Tooltip("The escape boundary.\nIf a point's magnitude exceeds this value, it has escaped.\nAffects edge detail.");
+		if (auto* transform = entity.GetComponent<TransformComponent>()) {
+			if (UI::CollapsingHeader("Transform")) {
+				UI::Vec3("Position", transform->Position);
+				UI::Vec3("Rotation", transform->Rotation);
+				UI::Vec3("Scale", transform->Scale, 1.0f);
+			}
+		}
 
-		//	UI::Bool("Julia Mode", mandelbrot.JuliaMode);
-		//	UI::Tooltip("Switches to a Julia set calculation, where 'c' is a constant for the entire image.");
+		if (auto* light = entity.GetComponent<LightComponent>()) {
+			if (UI::CollapsingHeader("Light")) {
+ 				UI::Dropdown("Type", m_LightTypes, light->Type, Utilities::LightTypeToString);
+				UI::ColorEdit3("Color", light->Color);
+				UI::DragFloat("Intensity", light->Intensity, 0.0f, 100.0f, 0.05f);
+				UI::DragFloat("Range", light->Range, 0.1f, 1000.0f, 0.05f);
 
-		//	if (mandelbrot.JuliaMode) {
-		//		UI::Separator();
+				if (light->Type == LightType::Directional || light->Type == LightType::Spot) {
+					UI::Vec3("Direction", light->Direction);
+				}
 
-		//		UI::Vec2("Constant 'c'", mandelbrot.JuliaC, 0.0f);
-		//		UI::Tooltip("The constant 'c' value for the Julia set calculation.\nThe entire fractal is based on this point.");
-		//	}
+				if (light->Type == LightType::Point || light->Type == LightType::Spot) {
+					UI::DragFloat("Constant", light->Constant, 0.0f, 10.0f, 0.001f);
+					UI::DragFloat("Linear", light->Linear, 0.0f, 1.0f, 0.001f);
+					UI::DragFloat("Quadratic", light->Quadratic, 0.0f, 1.0f, 0.001f);
+				}
 
-		//	UI::Separator();
-		//}
+				if (light->Type == LightType::Spot) {
+					UI::DragFloat("Inner Cone", light->InnerCone, 0.0f, 1.0f, 0.001f);
+					UI::DragFloat("Outer Cone", light->OuterCone, 0.0f, 1.0f, 0.001f);
+				}
+			}
+		}
 
-		//if (UI::CollapsingHeader("View")) {
-		//	UI::DragFloat("Zoom", mandelbrot.Zoom, 0.01f, 10000.0f, 0.1f);
-		//	UI::Tooltip("Magnification level of the fractal.");
+		if (auto* camera = entity.GetComponent<CameraComponent>()) {
+			if (UI::CollapsingHeader("Camera")) {
+				UI::DragFloat("FOV", camera->FOV, 1.0f, 179.0f, 0.1f);
+				UI::DragFloat("Near Clip", camera->NearClip, 0.001f, 100.0f, 0.001f);
+				UI::DragFloat("Far Clip", camera->FarClip, 0.1f, 5000.0f, 1.0f);
+				UI::Bool("Primary", camera->Primary);
+			}
+		}
 
-		//	{
-		//		// Convert world position to screen space for display.
-		//		float rotation = glm::radians(mandelbrot.Rotation);
+		if (auto* materialComponent = entity.GetComponent<MaterialComponent>()) {
+			if (UI::CollapsingHeader("Material")) {
+				const bool changed = UI::MaterialSlot("Material", materialComponent->MaterialFilepath);
 
-		//		glm::mat2 worldToScreen = {
-		//			{ cos(rotation), -sin(rotation) },
-		//			{ sin(rotation),  cos(rotation) }
-		//		};
+				if (changed && !materialComponent->MaterialFilepath.empty()) {
+					MaterialSerializer serializer(materialComponent->Material);
+					
+					if (!serializer.Deserialize(materialComponent->MaterialFilepath)) {
+						Log::Warning("InspectorWindow::OnUIRender - Couldn't deserialize Material: " + materialComponent->MaterialFilepath.string());
+					}
+				}
 
-		//		glm::vec2 screenPosition = worldToScreen * mandelbrot.Position;
-		//		glm::vec2 originalScreenPosition = screenPosition;
+				if (!materialComponent->MaterialFilepath.empty()) {
+					UI::Separator();
 
-		//		UI::Vec2("Position", screenPosition);
-		//		UI::Tooltip("Pans the view across the complex plane.");
+					auto& material = materialComponent->Material;
+					bool materialAssetChanged = false;
 
-		//		if (screenPosition != originalScreenPosition) {
-		//			glm::mat2 screenToWorld = {
-		//				{  cos(rotation), sin(rotation) },
-		//				{ -sin(rotation), cos(rotation) }
-		//			};
+					materialAssetChanged |= UI::ShaderSlot("Shader", material.ShaderFilepath);
 
-		//			mandelbrot.Position = screenToWorld * screenPosition;
-		//		}
-		//	}
+					UI::Separator();
 
-		//	UI::SliderFloat("Rotation", mandelbrot.Rotation, 0.0f, 360.0f);
-		//	UI::Tooltip("Rotates the view around the current position (in degrees).");
+					materialAssetChanged |= UI::ColorEdit4("Albedo", material.Albedo);
+					materialAssetChanged |= UI::DragFloat("Metallic", material.Metallic, 0.0f, 1.0f, 0.01f);
+					materialAssetChanged |= UI::DragFloat("Roughness", material.Roughness, 0.0f, 1.0f, 0.01f);
+					materialAssetChanged |= UI::DragFloat("Ambient Occlusion", material.AmbientOcclusion, 0.0f, 1.0f, 0.01f);
+					materialAssetChanged |= UI::DragFloat("Height Scale", material.HeightScale, 0.0f, 1.0f, 0.01f);
 
-		//	UI::Separator();
-		//}
+					if (UI::CollapsingHeader("Emission")) {
+						auto& emission = material.Emission;
 
-		//if (UI::CollapsingHeader("Coloring")) {
-		//	UI::Dropdown("Exterior", m_ColorAlgorithms, mandelbrot.ExteriorColoring, Utilities::ColorAlgorithmToString);
-		//	UI::Tooltip("Algorithm for coloring the area outside the set.");
+						materialAssetChanged |= UI::Bool("Enabled", emission.Enabled);
 
-		//	UI::Dropdown("Interior", m_InteriorColorAlgorithms, mandelbrot.InteriorColoring, Utilities::InteriorColorAlgorithmToString);
-		//	UI::Tooltip("Algorithm for coloring the area inside the set.");
+						if (emission.Enabled) {
+							UI::Separator();
 
-		//	if (mandelbrot.ExteriorColoring == ColorAlgorithm::DistanceEstimation) {
-		//		UI::DragFloat("Distance Scale", mandelbrot.DistanceScale, 1.0f, 500.0f);
-		//		UI::Tooltip("Controls the base thickness and spacing of the contour lines in Distance Estimation mode.");
-		//	}
+							materialAssetChanged |= UI::ColorEdit4("Color", emission.Color);
+							materialAssetChanged |= UI::DragFloat("Intensity", emission.Intensity, 0.0f, 100.0f, 0.01f);
+						}
+					}
 
-		//	if (mandelbrot.InteriorColoring == InteriorColorAlgorithm::CustomColor) {
-		//		UI::Separator();
+					if (UI::CollapsingHeader("Textures")) {
+						auto& textures = material.Textures;
 
-		//		UI::ColorEdit3("Interior Color", mandelbrot.InteriorColor);
-		//		UI::Tooltip("The custom color for the interior of the set when 'CustomColor' mode is selected.");
-		//	}
+						materialAssetChanged |= UI::Vec2("Tiling", textures.Tiling, 0.01f);
+						materialAssetChanged |= UI::Vec2("Offset", textures.Offset, 0.01f);
 
-		//	UI::DragFloat("Color Frequency", mandelbrot.ColorFrequency, 0.01f, 100.0f);
-		//	UI::Tooltip("How many times the color palette gradient repeats.\nHigher values create more color bands.");
+						UI::Separator();
 
-		//	UI::DragFloat("Color Phase Shift", mandelbrot.ColorOffset, 0.001f, 1.0f);
-		//	UI::Tooltip("Shifts the starting point of the color palette, cycling the colors.");
+						materialAssetChanged |= UI::TextureSlot("Albedo", textures.AlbedoFilepath);
+						materialAssetChanged |= UI::TextureSlot("Normal", textures.NormalFilepath);
+						materialAssetChanged |= UI::TextureSlot("Metallic", textures.MetallicFilepath);
+						materialAssetChanged |= UI::TextureSlot("Roughness", textures.RoughnessFilepath);
+						materialAssetChanged |= UI::TextureSlot("Ambient Occlusion", textures.AmbientOcclusionFilepath);
+						materialAssetChanged |= UI::TextureSlot("Height", textures.HeightFilepath);
+						materialAssetChanged |= UI::TextureSlot("Emission", textures.EmissionFilepath);
+					}
 
-		//	UI::Bool("Use Orbit Position", mandelbrot.OrbitColoring);
-		//	UI::Tooltip("Blends the color based on the final position (angle) of the point before escaping.");
+					if (materialAssetChanged) {
+						MaterialSerializer serializer(material);
 
+						if (!serializer.Serialize(materialComponent->MaterialFilepath)) {
+							Log::Warning("InspectorWindow::OnUIRender - Couldn't serialize Material: " + materialComponent->MaterialFilepath.string());
+						}
+					}
+				}
+			}
+		}
 
-		//	UI::Separator();
+		if (auto* meshComponent = entity.GetComponent<MeshComponent>()) {
+			if (UI::CollapsingHeader("Mesh")) {
+				UI::MeshSlot("Mesh", meshComponent->MeshFilepath);
 
-		//	UI::List("Color Palette", mandelbrot.ColorPalette.Colors, [&](glm::vec3& color) {
-		//		UI::ColorEdit3(color);
-		//		UI::Tooltip("Color segment of the Palette\nThe maximum number of colors is 16.");
-		//	});
+				if (!meshComponent->MeshFilepath.empty()) {
+					UI::Separator();
 
-		//	UI::Separator();
-		//}
+					UI::Bool("Cast Shadows", meshComponent->CastShadows);
+					UI::Bool("Receive Shadows", meshComponent->ReceiveShadows);
+				}
+			}
+		}
 
-		//if (UI::CollapsingHeader("Orbit Trap")) {
-		//	UI::Dropdown("Type", m_OrbitTrapTypes, mandelbrot.Trap.Type, Utilities::OrbitTrapTypeToString);
-		//	UI::Tooltip("Selects the shape of the orbit trap, which influences the fractal's color.");
+		if (auto* shaderComponent = entity.GetComponent<ShaderComponent>()) {
+			if (UI::CollapsingHeader("Shader")) {
+				UI::ShaderSlot("Shader", shaderComponent->ShaderFilepath);
 
-		//	if (mandelbrot.Trap.Type != OrbitTrapType::None) {
-		//		if (mandelbrot.Trap.Type == OrbitTrapType::Point) { // Point
-		//			UI::Vec2("Position", mandelbrot.Trap.P1, 0.0f);
-		//			UI::Tooltip("The center of the point trap in the complex plane.");
-		//		} else if (mandelbrot.Trap.Type == OrbitTrapType::Circle) { // Circle
-		//			UI::Vec2("Center", mandelbrot.Trap.P1, 0.0f);
-		//			UI::Tooltip("The center of the circle trap.");
+				if (!shaderComponent->ShaderFilepath.empty()) {
+					UI::Separator();
 
-		//			UI::DragFloat("Radius", mandelbrot.Trap.P2.x, 0.001f, 10.0f);
-		//			UI::Tooltip("The radius of the circle trap.");
-		//		} else if (mandelbrot.Trap.Type == OrbitTrapType::Line) { // Line
-		//			UI::Vec2("Start Point", mandelbrot.Trap.P1, 0.0f);
-		//			UI::Tooltip("The starting point of the line segment trap.");
+					UI::Text("Shader inspector pending.");
+				}
+			}
+		}
 
-		//			UI::Vec2("End Point", mandelbrot.Trap.P2, 0.0f);
-		//			UI::Tooltip("The ending point of the line segment trap.");
-		//		} else if (mandelbrot.Trap.Type == OrbitTrapType::Box) { // Box
-		//			UI::Vec2("Center", mandelbrot.Trap.P1, 0.0f);
-		//			UI::Tooltip("The center of the box trap.");
+		UI::Separator();
+		ImGui::Text("Add Component");
+		for (const auto& entry : ComponentRegistry::Entries()) {
+			if (!entry.Has(entity)) {
+				if (UI::Button(entry.Name.c_str())) {
+					entry.Add(entity);
+				}
+			}
+		}
 
-		//			UI::Vec2("Size", mandelbrot.Trap.P2, 0.5f);
-		//			UI::Tooltip("The width and height of the box trap.");
-		//		} else if (mandelbrot.Trap.Type == OrbitTrapType::Cross) { // Cross
-		//			UI::Vec2("Center", mandelbrot.Trap.P1, 0.0f);
-		//			UI::Tooltip("The center of the cross trap.");
-		//		}
-
-		//		UI::Separator();
-
-		//		UI::ColorEdit3("Trap Color", mandelbrot.Trap.Color);
-		//		UI::Tooltip("The color that will be blended into the fractal near the trap.");
-
-		//		UI::SliderFloat("Blend Factor", mandelbrot.Trap.Blend, 0.0f, 1.0f);
-		//		UI::Tooltip("How strongly the trap's color is blended with the fractal's original color.");
-		//	}
-
-		//	UI::Separator();
-		//}
+		UI::Separator();
+		ImGui::Text("Remove Component");
+		for (const auto& entry : ComponentRegistry::Entries()) {
+			if (entry.Has(entity) && entry.Name != "Name") {
+				if (UI::Button(("Remove " + entry.Name).c_str())) {
+					entry.Remove(entity);
+					break;
+				}
+			}
+		}
 	}
 
 	ImGui::End();

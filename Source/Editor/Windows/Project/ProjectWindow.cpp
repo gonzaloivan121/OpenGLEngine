@@ -5,6 +5,8 @@
 #include "Editor/Payload.h"
 
 #include <algorithm>
+#include <cctype>
+#include <cstring>
 #include <vector>
 
 #ifdef _WIN32
@@ -13,6 +15,17 @@
 #include <Windows.h>
 #include <shellapi.h>
 #endif
+
+namespace {
+	std::string ToLowerExtension(const std::filesystem::path& path) {
+		std::string extension = path.extension().string();
+		std::transform(extension.begin(), extension.end(), extension.begin(), [](unsigned char c) {
+			return static_cast<char>(std::tolower(c));
+		});
+
+		return extension;
+	}
+}
 
 void ProjectWindow::OnCreate() {
 	Log::Trace("ProjectWindow::OnCreate - Creating Project Window");
@@ -25,6 +38,27 @@ void ProjectWindow::OnAttach() {
 	m_EmptyFolderIcon = Texture2D::Create("Internal/Icons/Folder-Empty.png");
 	m_FileIcon = Texture2D::Create("Internal/Icons/File.png");
 	m_SceneIcon = Texture2D::Create("Internal/Icons/Scene.png");
+	m_MeshIcon = Texture2D::Create("Internal/Icons/Mesh.png");
+	m_MaterialIcon = Texture2D::Create("Internal/Icons/Material.png");
+	m_AudioIcon = Texture2D::Create("Internal/Icons/Audio.png");
+	m_ShaderIcon = Texture2D::Create("Internal/Icons/Shader.png");
+
+	m_DragDropSourceTypes.clear();
+	RegisterDragDropSourceType("", Payload::Type::Folder, "Folder");
+	RegisterDragDropSourceType(".scene", Payload::Type::Scene, "Scene");
+	RegisterDragDropSourceType(".material", Payload::Type::Material, "Material");
+	RegisterDragDropSourceType(".png", Payload::Type::Texture, "Texture");
+	RegisterDragDropSourceType(".jpg", Payload::Type::Texture, "Texture");
+	RegisterDragDropSourceType(".jpeg", Payload::Type::Texture, "Texture");
+	RegisterDragDropSourceType(".mesh", Payload::Type::Mesh, "Mesh");
+	RegisterDragDropSourceType(".obj", Payload::Type::Mesh, "Mesh");
+	RegisterDragDropSourceType(".fbx", Payload::Type::Mesh, "Mesh");
+	RegisterDragDropSourceType(".wav", Payload::Type::Audio, "Audio");
+	RegisterDragDropSourceType(".mp3", Payload::Type::Audio, "Audio");
+	RegisterDragDropSourceType(".ogg", Payload::Type::Audio, "Audio");
+	RegisterDragDropSourceType(".flac", Payload::Type::Audio, "Audio");
+	RegisterDragDropSourceType(".shader", Payload::Type::Shader, "Shader");
+	RegisterDragDropSourceType(".spv", Payload::Type::Shader, "Shader");
 }
 
 void ProjectWindow::OnDetach() {
@@ -40,12 +74,23 @@ void ProjectWindow::OnUIRender() {
 
 	ImGui::Begin("Project", &m_IsOpen);
 
+	const auto& style = ImGui::GetStyle();
+	float sliderFooterHeight =
+		ImGui::GetFrameHeight()
+		+ style.WindowPadding.y * 2.0f
+		+ style.ChildBorderSize * 2.0f
+		+ style.ItemSpacing.y * 2.0f;
+
 	DrawBreadcrumbs();
 	ImGui::Separator();
 
-	ImGui::BeginChild("FOLDER_CONTENT_CHILD", { 0, 0 }, ImGuiChildFlags_Borders);
+	ImGui::BeginChild("FOLDER_CONTENT_CHILD", { 0, -sliderFooterHeight }, ImGuiChildFlags_Borders);
 	DrawFolderContent();
 	DrawBackgroundContextMenu();
+	ImGui::EndChild();
+
+	ImGui::BeginChild("ICON_SIZE_CHILD", { 0, 0 }, ImGuiChildFlags_Borders);
+	DrawIconSizeSlider();
 	ImGui::EndChild();
 
 	if (m_OpenDeleteModal) {
@@ -206,6 +251,10 @@ void ProjectWindow::DrawBackgroundContextMenu() {
 			CreateScene(m_CurrentDirectory);
 		}
 
+		if (ImGui::MenuItem("Material")) {
+			CreateMaterial(m_CurrentDirectory);
+		}
+
 		ImGui::EndMenu();
 	}
 
@@ -294,7 +343,10 @@ void ProjectWindow::DrawDeleteModal() {
 	ImGui::Separator();
 
 	if (ImGui::Button("Delete", { 120, 0 })) {
-		if (m_PendingDeletePath) DeleteItem(*m_PendingDeletePath);
+		if (m_PendingDeletePath) {
+			DeleteItem(*m_PendingDeletePath);
+		}
+
 		m_PendingDeletePath.reset();
 		ImGui::CloseCurrentPopup();
 	}
@@ -307,6 +359,11 @@ void ProjectWindow::DrawDeleteModal() {
 	}
 
 	ImGui::EndPopup();
+}
+
+void ProjectWindow::DrawIconSizeSlider() {
+	ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x);
+	UI::SliderFloat("IconSize", m_ThumbnailSize, 16.0f, 256.0f);
 }
 
 void ProjectWindow::CreateFolder(const std::filesystem::path& directory) {
@@ -323,15 +380,18 @@ void ProjectWindow::CreateFolder(const std::filesystem::path& directory) {
 
 void ProjectWindow::CreateScene(const std::filesystem::path& directory) {
 	std::filesystem::path filepath = GenerateUniqueFilename(directory / "New Scene.scene");
-	// Scene scene;
-	// SceneSerializer serializer(scene);
 
-	// if (serializer.Serialize(filepath)) {
-	//	Log::Info("ProjectWindow::CreateScene - Created: " + filepath.string());
-	// 	BeginRenaming(filepath, filepath.stem().string());
-	// } else {
-	//	Log::Error("ProjectWindow::CreateScene - Failed: " + filepath.string());
-	// }
+	if (m_SceneNewCallback) {
+		m_SceneNewCallback(filepath);
+	}
+}
+
+void ProjectWindow::CreateMaterial(const std::filesystem::path& directory) {
+	std::filesystem::path filepath = GenerateUniqueFilename(directory / "New Material.material");
+
+	if (m_MaterialNewCallback) {
+		m_MaterialNewCallback(filepath);
+	}
 }
 
 void ProjectWindow::DeleteItem(const std::filesystem::path& path) {
@@ -466,22 +526,28 @@ void ProjectWindow::HandleDragDropSource(const std::filesystem::directory_entry&
 		return;
 	}
 
+	const DragDropSourceType* type = ResolveDragDropSourceType(entry);
+	if (!type) {
+		ImGui::EndDragDropSource();
+		return;
+	}
+
+	DrawDragDropSourcePreview(entry, *type);
+	ImGui::EndDragDropSource();
+}
+
+void ProjectWindow::DrawDragDropSourcePreview(const std::filesystem::directory_entry& entry, const DragDropSourceType& type) {
 	const auto& path      = entry.path();
 	const std::string str = path.string();
-	const bool isDir      = entry.is_directory();
-	const std::string ext = path.extension().string();
 
-	ImGui::SetDragDropPayload(isDir ? Payload::Folder : Payload::Scene,
-		str.c_str(), str.size() + 1);
+	ImGui::SetDragDropPayload(Payload::ToUIPayload(type.PayloadType), str.c_str(), str.size() + 1);
 
-	ImGui::Image((ImTextureID)GetIconForEntry(entry)->GetHandle(), { 64, 64 }, { 0, 1 }, { 1, 0 });
+	ImGui::Image((ImTextureID)GetIconForPayloadType(type.PayloadType)->GetHandle(), { 64, 64 }, { 0, 1 }, { 1, 0 });
 	ImGui::SameLine();
 	ImGui::BeginGroup();
 	ImGui::TextUnformatted(path.filename().string().c_str());
-	ImGui::TextUnformatted(isDir ? "Folder" : (ext == ".scene" ? "Scene" : "File"));
+	ImGui::TextUnformatted(type.Label);
 	ImGui::EndGroup();
-
-	ImGui::EndDragDropSource();
 }
 
 void ProjectWindow::HandleDragDropTarget(const std::filesystem::path& targetDir) {
@@ -489,16 +555,43 @@ void ProjectWindow::HandleDragDropTarget(const std::filesystem::path& targetDir)
 		return;
 	}
 
-	auto tryAccept = [&](const char* payloadType) {
-		if (const ImGuiPayload* p = ImGui::AcceptDragDropPayload(payloadType)) {
-			MoveItem(std::filesystem::path(std::string((const char*)p->Data, p->DataSize - 1)), targetDir);
+	for (const auto& sourceType : m_DragDropSourceTypes) {
+		if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload(Payload::ToUIPayload(sourceType.PayloadType))) {
+			MoveItem(std::filesystem::path(std::string((const char*)payload->Data, payload->DataSize - 1)), targetDir);
 		}
-	};
-
-	tryAccept(Payload::Scene);
-	tryAccept(Payload::Folder);
+	}
 
 	ImGui::EndDragDropTarget();
+}
+
+void ProjectWindow::RegisterDragDropSourceType(std::string extension, Payload::Type payloadType, const char* label) {
+	m_DragDropSourceTypes.push_back({ extension, payloadType, label });
+}
+
+const ProjectWindow::DragDropSourceType* ProjectWindow::ResolveDragDropSourceType(const std::filesystem::directory_entry& entry) const {
+	const std::string extension = entry.is_directory() ? std::string() : ToLowerExtension(entry.path());
+
+	for (const auto& sourceType : m_DragDropSourceTypes) {
+		if (sourceType.Extension == extension) {
+			return &sourceType;
+		}
+	}
+
+	return nullptr;
+}
+
+Ref<Texture2D> ProjectWindow::GetIconForPayloadType(Payload::Type payloadType) const {
+	switch (payloadType) {
+		case Payload::Type::Folder:		return m_FullFolderIcon;
+		case Payload::Type::Scene:		return m_SceneIcon;
+		case Payload::Type::Material: 	return m_MaterialIcon;
+		case Payload::Type::Texture: 	return m_FileIcon;
+		case Payload::Type::Mesh: 		return m_MeshIcon;
+		case Payload::Type::Audio: 		return m_AudioIcon;
+		case Payload::Type::Shader: 	return m_ShaderIcon;
+	}
+
+	return m_FileIcon;
 }
 
 Ref<Texture2D> ProjectWindow::GetIconForEntry(const std::filesystem::directory_entry& entry) const {
@@ -510,8 +603,8 @@ Ref<Texture2D> ProjectWindow::GetIconForEntry(const std::filesystem::directory_e
 		return m_FullFolderIcon;
 	}
 
-	if (entry.path().extension().string() == ".scene") {
-		return m_SceneIcon;
+	if (const DragDropSourceType* type = ResolveDragDropSourceType(entry)) {
+		return GetIconForPayloadType(type->PayloadType);
 	}
 
 	return m_FileIcon;

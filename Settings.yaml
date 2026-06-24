@@ -1,6 +1,7 @@
 Settings:
   Application:
     Name: OpenGL Engine
+    StartupScene: Assets\Scenes\Test.scene
     Version:
       Major: 0
       Minor: 0
@@ -19,6 +20,7 @@ Settings:
       ShowAbout: false
       ShowInspector: true
       ShowProject: true
+      ShowScene: true
       ShowSettings: false
       ShowStatistics: false
       ShowViewport: true

@@ -1,17 +1,15 @@
 #pragma once
 
 #include "Core/Core.h"
-
-#include "ECS/Components.h"
 #include "ECS/Scene.h"
 
 #include "Editor/Window.h"
 
 #include <vector>
 
-class InspectorWindow : public Window {
+class SceneWindow : public Window {
 public:
-	InspectorWindow(
+	SceneWindow(
 		bool& isOpen,
 		Scene& scene,
 		UUID& selectedEntityID
@@ -26,9 +24,17 @@ public:
 	virtual void OnDetach() override;
 	virtual void OnUpdate(Timestep ts) override;
 	virtual void OnUIRender() override;
+
+private:
+	void CreateEntityPopup();
+	void DeselectEntityIfClickedOutside();
+
+	Entity CreateEmpty();
+	Entity CreateCamera();
+	Entity CreateDirectionalLight();
+	Entity CreatePointLight();
+	Entity CreateSpotLight();
 private:
 	Scene& m_Scene;
 	UUID& m_SelectedEntityID;
-
-	std::vector<LightType> m_LightTypes;
 };

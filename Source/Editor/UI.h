@@ -72,6 +72,11 @@ public:
 
 	// Slot widgets with Label
 	static bool SceneSlot(const char* label, std::filesystem::path& sceneFilepath);
+	static bool MaterialSlot(const char* label, std::filesystem::path& materialFilepath);
+	static bool TextureSlot(const char* label, std::filesystem::path& textureFilepath);
+	static bool MeshSlot(const char* label, std::filesystem::path& meshFilepath);
+	static bool AudioSlot(const char* label, std::filesystem::path& audioFilepath);
+	static bool ShaderSlot(const char* label, std::filesystem::path& shaderFilepath);
 
 	// Bool widget with Label
 	static bool Bool(const char* label, bool& value);
@@ -137,6 +142,11 @@ private:
 	inline static Ref<Texture2D> s_EmptyImage = nullptr;
 	inline static Ref<Texture2D> s_EllipsisIcon = nullptr;
 	inline static Ref<Texture2D> s_SceneIcon = nullptr;
+	inline static Ref<Texture2D> s_MaterialIcon = nullptr;
+	inline static Ref<Texture2D> s_TextureIcon = nullptr;
+	inline static Ref<Texture2D> s_MeshIcon = nullptr;
+	inline static Ref<Texture2D> s_AudioIcon = nullptr;
+	inline static Ref<Texture2D> s_ShaderIcon = nullptr;
 };
 
 template<typename T, typename UIFunction>

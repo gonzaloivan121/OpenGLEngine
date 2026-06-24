@@ -1,0 +1,31 @@
+Scene:
+  Entities:
+    - Entity:
+        ID: 2291784866601969354
+        Components:
+          NameComponent:
+            Name: Main Camera
+          TransformComponent:
+            Position: [0, 0, 5]
+            Rotation: [0, 0, 0]
+            Scale: [1, 1, 1]
+          CameraComponent:
+            FOV: 60
+            NearClip: 0.1
+            FarClip: 100
+            Primary: true
+    - Entity:
+        ID: 13221974688074868862
+        Components:
+          NameComponent:
+            Name: Cube
+          TransformComponent:
+            Position: [0, 0, 0]
+            Rotation: [45, 45, 600]
+            Scale: [1, 1, 1]
+          MeshComponent:
+            MeshFilepath: Assets/Meshes/Cube.obj
+            CastShadows: true
+            ReceiveShadows: true
+          MaterialComponent:
+            MaterialFilepath: Assets/Materials/Default.material

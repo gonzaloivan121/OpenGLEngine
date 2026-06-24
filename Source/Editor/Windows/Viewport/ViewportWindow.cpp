@@ -129,7 +129,7 @@ void ViewportWindow::Draw() {
 	}
 
 	if (ImGui::BeginDragDropTarget()) {
-		if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload(Payload::Scene)) {
+		if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload(Payload::ToUIPayload(Payload::Type::Scene))) {
 			const char* path = (const char*)payload->Data;
 
 			if (m_SceneLoadCallback) {

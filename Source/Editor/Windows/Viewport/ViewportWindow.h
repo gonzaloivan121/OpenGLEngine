@@ -1,7 +1,7 @@
 #pragma once
 
 #include "Editor/Window.h"
-#include "Core/Scene.h"
+#include "ECS/Scene.h"
 
 #include <filesystem>
 #include <functional>

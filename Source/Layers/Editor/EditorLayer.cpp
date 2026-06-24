@@ -5,6 +5,8 @@
 #include "Core/Settings/SettingsManager.h"
 #include "Core/Input/Input.h"
 
+#include "ECS/Serialization/Scene/SceneSerializer.h"
+
 #include "Renderer/Renderer.h"
 
 #include "Editor/Windows.h"
@@ -20,14 +22,21 @@ void EditorLayer::OnCreate() {
 	Log::Trace("EditorLayer::OnCreate - Creating Editor Layer");
 
 	m_Windows.emplace_back(CreateScope<AboutWindow>(SettingsManager::Get().Editor.Windows.ShowAbout));
-	m_Windows.emplace_back(CreateScope<InspectorWindow>(SettingsManager::Get().Editor.Windows.ShowInspector, m_Scene));
+	m_Windows.emplace_back(CreateScope<InspectorWindow>(SettingsManager::Get().Editor.Windows.ShowInspector, m_Scene, m_SelectedEntityID));
 
 	auto projectWindow = CreateScope<ProjectWindow>(SettingsManager::Get().Editor.Windows.ShowProject);
 	projectWindow->SetSceneLoadCallback([this](const std::filesystem::path& filepath) {
 		LoadScene(filepath);
 	});
+	projectWindow->SetSceneNewCallback([this](const std::filesystem::path& filepath) {
+		CreateSceneAsset(filepath);
+	});
+	projectWindow->SetMaterialNewCallback([this](const std::filesystem::path& filepath) {
+		NewMaterial(filepath);
+	});
 	m_Windows.emplace_back(std::move(projectWindow));
 
+	m_Windows.emplace_back(CreateScope<SceneWindow>(SettingsManager::Get().Editor.Windows.ShowScene, m_Scene, m_SelectedEntityID));
 	m_Windows.emplace_back(CreateScope<SettingsWindow>(SettingsManager::Get().Editor.Windows.ShowSettings));
 	m_Windows.emplace_back(CreateScope<StatisticsWindow>(SettingsManager::Get().Editor.Windows.ShowStatistics));
 
@@ -185,6 +194,7 @@ void EditorLayer::DrawMenuBar() {
 			ImGui::MenuItem("About",     "F1",     &windowsSettings.ShowAbout);
 			ImGui::MenuItem("Inspector", "Ctrl+I", &windowsSettings.ShowInspector);
 			ImGui::MenuItem("Project",   "Ctrl+P", &windowsSettings.ShowProject);
+			ImGui::MenuItem("Scene",	 "Ctrl+;", &windowsSettings.ShowScene);
 			ImGui::MenuItem("Settings",  "Ctrl+,", &windowsSettings.ShowSettings);
 			ImGui::MenuItem("Statistics","Ctrl+T", &windowsSettings.ShowStatistics);
 			ImGui::MenuItem("Viewport",  "Ctrl+V", &windowsSettings.ShowViewport);
@@ -236,12 +246,13 @@ void EditorLayer::DrawScenesRecursive(const std::filesystem::path& directoryPath
 	}
 }
 
-bool EditorLayer::NewScene(const std::string& name, const std::filesystem::path& filepath) {
+bool EditorLayer::NewScene(const std::filesystem::path& filepath) {
 	Log::Info("EditorLayer::NewScene - Creating new Scene");
 
 	m_CurrentSceneFilepath.clear();
+	m_Scene.DestroyAllEntities();
 
-	Application::Get().SetWindowTitle(name);
+	UpdateWindowTitle(filepath);
 
 	if (SaveScene(filepath)) {
 		Log::Info("EditorLayer::NewScene - New Scene has been created");
@@ -254,16 +265,31 @@ bool EditorLayer::NewScene(const std::string& name, const std::filesystem::path&
 	return false;
 }
 
+bool EditorLayer::CreateSceneAsset(const std::filesystem::path& filepath) {
+	Log::Trace("EditorLayer::CreateSceneAsset - Creating Scene asset at " + filepath.string());
+
+	Scene scene;
+	SceneSerializer serializer(scene);
+
+	if (serializer.Serialize(filepath)) {
+		Log::Info("EditorLayer::CreateSceneAsset - Scene asset created");
+		return true;
+	}
+
+	Log::Warning("EditorLayer::CreateSceneAsset - Couldn't create Scene asset");
+	return false;
+}
+
 bool EditorLayer::SaveScene(const std::filesystem::path& filepath) {
 	Log::Info("EditorLayer::SaveScene - Saving Scene to " + filepath.string());
 
-	/*SceneSerializer serializer(m_Scene);
+	SceneSerializer serializer(m_Scene);
 
 	if (serializer.Serialize(filepath)) {
 		Log::Info("EditorLayer::SaveScene - Scene has been saved");
 
 		return true;
-	}*/
+	}
 	
 	Log::Warning("EditorLayer::SaveScene - Couldn't save Scene");
 
@@ -278,7 +304,10 @@ bool EditorLayer::LoadScene(const std::filesystem::path& filepath) {
 
 	Log::Info("EditorLayer::LoadScene - Loading Scene from " + filepath.string());
 
-	/*SceneSerializer serializer(m_Scene);
+	m_Scene.DestroyAllEntities();
+	m_SelectedEntityID = UUID(0);
+
+	SceneSerializer serializer(m_Scene);
 
 	if (serializer.Deserialize(filepath)) {
 		Log::Info("EditorLayer::LoadScene - Scene has been loaded");
@@ -289,10 +318,14 @@ bool EditorLayer::LoadScene(const std::filesystem::path& filepath) {
 		AddToRecentScenes(filepath);
 
 		return true;
-	}*/
+	}
 
 	Log::Warning("EditorLayer::LoadScene - Couldn't load Scene: " + filepath.string());
 
+	return false;
+}
+
+bool EditorLayer::NewMaterial(const std::filesystem::path& filepath) {
 	return false;
 }
 
@@ -339,7 +372,7 @@ void EditorLayer::HandleKeyboardShortcuts() {
 		}
 
 		if (Input::IsKeyDown(KeyCode::N)) {
-			NewScene("Untitled", m_CurrentSceneFilepath);
+			NewScene(m_CurrentSceneFilepath);
 		}
 
 		if (Input::IsKeyDown(KeyCode::P)) {
@@ -348,6 +381,10 @@ void EditorLayer::HandleKeyboardShortcuts() {
 
 		if (Input::IsKeyDown(KeyCode::Comma)) {
 			SettingsManager::Get().Editor.Windows.ShowSettings = !SettingsManager::Get().Editor.Windows.ShowSettings;
+		}
+
+		if (Input::IsKeyDown(KeyCode::Semicolon)) {
+			SettingsManager::Get().Editor.Windows.ShowScene = !SettingsManager::Get().Editor.Windows.ShowScene;
 		}
 
 		if (Input::IsKeyDown(KeyCode::I)) {

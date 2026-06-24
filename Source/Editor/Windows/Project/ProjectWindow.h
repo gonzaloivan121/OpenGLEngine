@@ -1,6 +1,8 @@
 #pragma once
 
 #include "Editor/Window.h"
+#include "Editor/Payload.h"
+#include "Editor/UI.h"
 
 #include "Renderer/Texture.h"
 
@@ -8,10 +10,14 @@
 #include <functional>
 #include <optional>
 #include <string>
+#include <vector>
 
 class ProjectWindow : public Window {
 public:
 	using SceneLoadCallback = std::function<void(const std::filesystem::path&)>;
+	using SceneNewCallback = std::function<void(const std::filesystem::path&)>;
+
+	using MaterialNewCallback = std::function<void(const std::filesystem::path&)>;
 
 	ProjectWindow(bool& isOpen) : Window(isOpen) {}
 
@@ -22,8 +28,17 @@ public:
 	virtual void OnUIRender() override;
 
 	void SetSceneLoadCallback(const SceneLoadCallback& callback) { m_SceneLoadCallback = callback; }
+	void SetSceneNewCallback(const SceneNewCallback& callback) { m_SceneNewCallback = callback; }
+
+	void SetMaterialNewCallback(const MaterialNewCallback& callback) { m_MaterialNewCallback = callback; }
 
 private:
+	struct DragDropSourceType {
+		std::string Extension;
+		Payload::Type PayloadType;
+		const char* Label;
+	};
+
 	// Drawing
 	void DrawFolderContent();
 	void DrawBreadcrumbs();
@@ -35,9 +50,12 @@ private:
 	void DrawItemContextMenu(const std::filesystem::path& path);
 	void DrawDeleteModal();
 
+	void DrawIconSizeSlider();
+
 	// File operations
 	void CreateFolder(const std::filesystem::path& directory);
 	void CreateScene(const std::filesystem::path& directory);
+	void CreateMaterial(const std::filesystem::path& directory);
 	void DeleteItem(const std::filesystem::path& path);
 	void RenameItem(const std::filesystem::path& oldPath, const std::string& newStem);
 	void DuplicateItem(const std::filesystem::path& path);
@@ -47,8 +65,12 @@ private:
 	// Drag & Drop
 	void HandleDragDropSource(const std::filesystem::directory_entry& entry);
 	void HandleDragDropTarget(const std::filesystem::path& targetDir);
+	void DrawDragDropSourcePreview(const std::filesystem::directory_entry& entry, const DragDropSourceType& type);
+	void RegisterDragDropSourceType(std::string extension, Payload::Type payloadType, const char* label);
+	const DragDropSourceType* ResolveDragDropSourceType(const std::filesystem::directory_entry& entry) const;
 
 	// Helpers
+	Ref<Texture2D> GetIconForPayloadType(Payload::Type payloadType) const;
 	Ref<Texture2D> GetIconForEntry(const std::filesystem::directory_entry& entry) const;
 	std::filesystem::path GenerateUniqueFilename(const std::filesystem::path& preferred) const;
 	bool IsInsideAssetsDirectory(const std::filesystem::path& path) const;
@@ -64,8 +86,13 @@ private:
 	Ref<Texture2D> m_EmptyFolderIcon;
 	Ref<Texture2D> m_FileIcon;
 	Ref<Texture2D> m_SceneIcon;
+	Ref<Texture2D> m_MeshIcon;
+	Ref<Texture2D> m_MaterialIcon;
+	Ref<Texture2D> m_AudioIcon;
+	Ref<Texture2D> m_ShaderIcon;
+	std::vector<DragDropSourceType> m_DragDropSourceTypes;
 
-	float m_Padding = 16.0f;
+	float m_Padding = 24.0f;
 	float m_ThumbnailSize = 96.0f;
 
 	// Rename state
@@ -81,4 +108,7 @@ private:
 	std::optional<std::filesystem::path> m_SelectedPath;
 
 	SceneLoadCallback m_SceneLoadCallback;
+	SceneNewCallback m_SceneNewCallback;
+
+	MaterialNewCallback m_MaterialNewCallback;
 };

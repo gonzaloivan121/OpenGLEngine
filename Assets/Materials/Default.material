@@ -1,0 +1,21 @@
+Material:
+  ShaderFilepath: Assets\Shaders\Default.shader
+  Albedo: [1, 1, 1, 1]
+  Metallic: 0.5
+  Roughness: 0.5
+  AmbientOcclusion: 1
+  HeightScale: 0.1
+  Emission:
+    Enabled: false
+    Color: [1, 1, 1, 1]
+    Intensity: 1
+  Textures:
+    Tiling: [1, 1]
+    Offset: [0, 0]
+    AlbedoFilepath: Assets/Textures/Default_Albedo.png
+    NormalFilepath: Assets/Textures/Default_Normal.png
+    MetallicFilepath: Assets/Textures/Default_Metallic.png
+    RoughnessFilepath: Assets/Textures/Default_Roughness.png
+    AmbientOcclusionFilepath: Assets/Textures/Default_AO.png
+    HeightFilepath: Assets/Textures/Default_Height.png
+    EmissionFilepath: Assets/Textures/Default_Emission.png

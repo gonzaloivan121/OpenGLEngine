@@ -53,6 +53,11 @@ void UI::Init() {
 	s_EmptyImage = Texture2D::Create(textureSpecification);
 	s_EllipsisIcon = Texture2D::Create("Internal/Icons/Ellipsis.png");
 	s_SceneIcon = Texture2D::Create("Internal/Icons/Scene.png");
+	s_MaterialIcon = Texture2D::Create("Internal/Icons/Material.png");
+	s_TextureIcon = Texture2D::Create("Internal/Icons/Texture.png");
+	s_MeshIcon = Texture2D::Create("Internal/Icons/Mesh.png");
+	s_AudioIcon = Texture2D::Create("Internal/Icons/Audio.png");
+	s_ShaderIcon = Texture2D::Create("Internal/Icons/Shader.png");
 }
 
 void UI::Shutdown() {
@@ -352,7 +357,27 @@ bool UI::SliderInt(int& value, int min, int max) {
 }
 
 bool UI::SceneSlot(const char* label, std::filesystem::path& sceneFilepath) {
-	return AssetSlot(label, sceneFilepath, s_SceneIcon, Payload::Scene);
+	return AssetSlot(label, sceneFilepath, s_SceneIcon, Payload::ToUIPayload(Payload::Type::Scene));
+}
+
+bool UI::MaterialSlot(const char* label, std::filesystem::path& materialFilepath) {
+	return AssetSlot(label, materialFilepath, s_MaterialIcon, Payload::ToUIPayload(Payload::Type::Material));
+}
+
+bool UI::TextureSlot(const char* label, std::filesystem::path& textureFilepath) {
+	return AssetSlot(label, textureFilepath, s_TextureIcon, Payload::ToUIPayload(Payload::Type::Texture));
+}
+
+bool UI::MeshSlot(const char* label, std::filesystem::path& meshFilepath) {
+	return AssetSlot(label, meshFilepath, s_MeshIcon, Payload::ToUIPayload(Payload::Type::Mesh));
+}
+
+bool UI::AudioSlot(const char* label, std::filesystem::path& audioFilepath) {
+	return AssetSlot(label, audioFilepath, s_AudioIcon, Payload::ToUIPayload(Payload::Type::Audio));
+}
+
+bool UI::ShaderSlot(const char* label, std::filesystem::path& shaderFilepath) {
+	return AssetSlot(label, shaderFilepath, s_ShaderIcon, Payload::ToUIPayload(Payload::Type::Shader));
 }
 
 bool UI::Bool(const char* label, bool& value) {
@@ -688,6 +713,11 @@ bool UI::AssetSlot(const char* label, std::filesystem::path& assetFilepath, Ref<
 		{ 0, 1 }, { 1, 0 }
 	);
 	ImGui::SameLine();
+	if (hasAsset) {
+		float clearButtonWidth = ImGui::CalcTextSize("X").x + GImGui->Style.FramePadding.x * 2.0f;
+		float spacing = GImGui->Style.ItemSpacing.x;
+		ImGui::SetNextItemWidth(ImMax(1.0f, ImGui::GetContentRegionAvail().x - clearButtonWidth - spacing));
+	}
 	ImGui::InputText(HiddenLabel(label), &assetName);
 	ImGui::EndDisabled();
 
@@ -695,6 +725,7 @@ bool UI::AssetSlot(const char* label, std::filesystem::path& assetFilepath, Ref<
 		if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload(payloadID)) {
 			const char* path = (const char*)payload->Data;
 			assetFilepath = std::filesystem::path(path);
+			hasAsset = !assetFilepath.empty();
 			changed = true;
 		}
 		ImGui::EndDragDropTarget();
@@ -702,7 +733,7 @@ bool UI::AssetSlot(const char* label, std::filesystem::path& assetFilepath, Ref<
 
 	if (hasAsset) {
 		ImGui::SameLine();
-		if (ImGui::Button(("x##" + std::string(label)).c_str())) {
+		if (ImGui::Button(("X##" + std::string(label)).c_str())) {
 			assetFilepath.clear();
 			changed = true;
 		}

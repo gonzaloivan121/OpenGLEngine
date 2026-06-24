@@ -276,6 +276,9 @@ struct WindowsSettings {
 	/// @brief Whether the Project window is visible on startup.
 	bool ShowProject = false;
 
+	/// @brief Whether the Scene window is visible on startup.
+	bool ShowScene = true;
+
 	/// @brief Whether the Settings window is visible on startup.
 	bool ShowSettings = false;
 
