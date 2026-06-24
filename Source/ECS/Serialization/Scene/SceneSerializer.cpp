@@ -228,17 +228,12 @@ void SceneSerializer::SerializeLightComponent(YAML::Emitter& out, const LightCom
 		out << YAML::Key << "Color" << YAML::Value << light->Color;
 		out << YAML::Key << "Intensity" << YAML::Value << light->Intensity;
 		out << YAML::Key << "Range" << YAML::Value << light->Range;
-
-		if (light->Type == LightType::Directional) {
-			out << YAML::Key << "Direction" << YAML::Value << light->Direction;
-		} else if (light->Type == LightType::Point) {
-			out << YAML::Key << "Constant" << YAML::Value << light->Constant;
-			out << YAML::Key << "Linear" << YAML::Value << light->Linear;
-			out << YAML::Key << "Quadratic" << YAML::Value << light->Quadratic;
-		} else if (light->Type == LightType::Spot) {
-			out << YAML::Key << "InnerCone" << YAML::Value << light->InnerCone;
-			out << YAML::Key << "OuterCone" << YAML::Value << light->OuterCone;
-		}
+		out << YAML::Key << "Direction" << YAML::Value << light->Direction;
+		out << YAML::Key << "Constant" << YAML::Value << light->Constant;
+		out << YAML::Key << "Linear" << YAML::Value << light->Linear;
+		out << YAML::Key << "Quadratic" << YAML::Value << light->Quadratic;
+		out << YAML::Key << "InnerCone" << YAML::Value << light->InnerCone;
+		out << YAML::Key << "OuterCone" << YAML::Value << light->OuterCone;
 	}
 	out << YAML::EndMap; // LightComponent
 }
@@ -272,7 +267,7 @@ void SceneSerializer::SerializeNameComponent(YAML::Emitter& out, const NameCompo
 void SceneSerializer::SerializeShaderComponent(YAML::Emitter& out, const ShaderComponent* shader) {
 	out << YAML::Key << "ShaderComponent" << YAML::Value << YAML::BeginMap; // ShaderComponent
 	{
-		out << YAML::Key << "Shader" << YAML::Value << ""; // TODO: Serialize Shader Reference
+		out << YAML::Key << "ShaderFilepath" << YAML::Value << shader->ShaderFilepath.string();
 	}
 	out << YAML::EndMap; // ShaderComponent
 }
@@ -461,8 +456,11 @@ void SceneSerializer::DeserializeShaderComponent(const YAML::Node& shaderNode, E
 
 	auto& shader = entity.AddComponent<ShaderComponent>();
 
-	if (const auto& shaderRefNode = shaderNode["Shader"]) {
-		// TODO: Deserialize Shader Reference
+	if (const auto& shaderFilepathNode = shaderNode["ShaderFilepath"]) {
+		shader.ShaderFilepath = shaderFilepathNode.as<std::string>();
+	} else if (const auto& legacyShaderNode = shaderNode["Shader"]) {
+		// Legacy compatibility for older scene files using the old key.
+		shader.ShaderFilepath = legacyShaderNode.as<std::string>();
 	}
 }
 

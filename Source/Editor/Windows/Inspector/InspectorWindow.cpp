@@ -37,6 +37,8 @@ void InspectorWindow::OnCreate() {
 void InspectorWindow::OnAttach() {
 	Log::Trace("InspectorWindow::OnAttach - Attaching Inspector Window");
 	RegisterComponentsIfNeeded();
+
+	m_LightTypes = { LightType::Directional, LightType::Point, LightType::Spot };
 }
 
 void InspectorWindow::OnDetach() {
@@ -122,10 +124,6 @@ void InspectorWindow::OnUIRender() {
 					auto& material = materialComponent->Material;
 					bool materialAssetChanged = false;
 
-					materialAssetChanged |= UI::ShaderSlot("Shader", material.ShaderFilepath);
-
-					UI::Separator();
-
 					materialAssetChanged |= UI::ColorEdit4("Albedo", material.Albedo);
 					materialAssetChanged |= UI::DragFloat("Metallic", material.Metallic, 0.0f, 1.0f, 0.01f);
 					materialAssetChanged |= UI::DragFloat("Roughness", material.Roughness, 0.0f, 1.0f, 0.01f);
@@ -189,12 +187,6 @@ void InspectorWindow::OnUIRender() {
 		if (auto* shaderComponent = entity.GetComponent<ShaderComponent>()) {
 			if (UI::CollapsingHeader("Shader")) {
 				UI::ShaderSlot("Shader", shaderComponent->ShaderFilepath);
-
-				if (!shaderComponent->ShaderFilepath.empty()) {
-					UI::Separator();
-
-					UI::Text("Shader inspector pending.");
-				}
 			}
 		}
 
