@@ -58,6 +58,9 @@ Application::Application(const ApplicationSpecification& spec)
 	// Initialize the logging system with the specified log specification.
 	Log::Init(logSpecification);
 
+	// Set the log level to `Info`, which means that only messages at the `Info` level and above will be logged.
+	Log::SetLevel(Level::Info);
+
 	// Initialize the application, including setting up GLFW, creating the window, and loading resources.
 	Init();
 }

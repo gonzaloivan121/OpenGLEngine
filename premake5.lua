@@ -83,7 +83,10 @@ project "OpenGLEngine"
         files { "Internal/Icons/AppIcon/appicon.rc" }
 
     filter "configurations:Debug"
-        defines { "OGE_DEBUG" }
+        defines {
+            "OGE_DEBUG",
+            "OGE_PROFILE"
+        }
         runtime "Debug"
         symbols "On"
 
