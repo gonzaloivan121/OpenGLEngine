@@ -3,9 +3,9 @@
 #include "Renderer/RenderCommand.h"
 #include "Renderer/Framebuffer.h"
 #include "Renderer/Shader.h"
-#include "Renderer/VertexArray.h"
 
-#include "Core/Scene.h"
+#include "Core/Mesh/Mesh.h"
+#include "ECS/Scene.h"
 
 #include <filesystem>
 
@@ -27,8 +27,8 @@ private:
 	static void InitShader();
 private:
 	inline static Ref<Framebuffer> s_Framebuffer = nullptr;
-	inline static Ref<VertexArray> m_QuadVA = nullptr;
-	inline static Ref<VertexArray> m_TriangleVA = nullptr;
+	inline static Ref<Mesh> m_QuadMesh = nullptr;
+	inline static Ref<Mesh> m_TriangleMesh = nullptr;
 	inline static Ref<Shader> m_Shader = nullptr;
 	inline static Ref<Shader> m_TriangleShader = nullptr;
 };

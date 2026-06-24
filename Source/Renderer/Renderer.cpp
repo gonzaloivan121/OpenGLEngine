@@ -23,8 +23,8 @@ void Renderer::Shutdown() {
 
 	m_TriangleShader.reset();
 	m_Shader.reset();
-	m_TriangleVA.reset();
-	m_QuadVA.reset();
+	m_TriangleMesh.reset();
+	m_QuadMesh.reset();
 	s_Framebuffer.reset();
 }
 
@@ -42,7 +42,7 @@ void Renderer::End() {
 }
 
 void Renderer::Submit(const Scene& scene) {
-	if (!m_Shader || !m_QuadVA) {
+	if (!m_Shader || !m_QuadMesh) {
 		return;
 	}
 
@@ -52,12 +52,17 @@ void Renderer::Submit(const Scene& scene) {
 
 	m_Shader->Bind();
 	m_Shader->SetUniform("u_Resolution", resolution);
+	const Ref<VertexArray>& quadVA = m_QuadMesh->GetVertexArray();
+	if (quadVA) {
+		RenderCommand::DrawIndexed(quadVA);
+	}
 
-	RenderCommand::DrawIndexed(m_QuadVA);
-
-	if (m_TriangleShader && m_TriangleVA) {
+	if (m_TriangleShader && m_TriangleMesh) {
 		m_TriangleShader->Bind();
-		RenderCommand::DrawIndexed(m_TriangleVA);
+		const Ref<VertexArray>& triangleVA = m_TriangleMesh->GetVertexArray();
+		if (triangleVA) {
+			RenderCommand::DrawIndexed(triangleVA);
+		}
 	}
 }
 
@@ -143,54 +148,45 @@ void Renderer::InitFramebuffer() {
 }
 
 void Renderer::InitVertexArray() {
-	Log::Trace("Renderer::InitFramebuffer - Initializing Fullscreen Vertex Array");
+	Log::Trace("Renderer::InitFramebuffer - Initializing Fullscreen Mesh");
 
-	float vertices[] = {
-		-1.0f, -1.0f, 0.0f, 0.0f, 0.0f,
-		 1.0f, -1.0f, 0.0f, 1.0f, 0.0f,
-		 1.0f,  1.0f, 0.0f, 1.0f, 1.0f,
-		-1.0f,  1.0f, 0.0f, 0.0f, 1.0f
+	m_QuadMesh = Mesh::Create();
+	m_QuadMesh->SetVertices({
+		glm::vec3(-1.0f, -1.0f, 0.0f),
+		glm::vec3( 1.0f, -1.0f, 0.0f),
+		glm::vec3( 1.0f,  1.0f, 0.0f),
+		glm::vec3(-1.0f,  1.0f, 0.0f)
+	});
+	m_QuadMesh->SetUVs({
+		glm::vec2(0.0f, 0.0f),
+		glm::vec2(1.0f, 0.0f),
+		glm::vec2(1.0f, 1.0f),
+		glm::vec2(0.0f, 1.0f)
+	});
+	m_QuadMesh->SetUV2s({
+		glm::vec2(0.0f, 0.0f),
+		glm::vec2(1.0f, 0.0f),
+		glm::vec2(1.0f, 1.0f),
+		glm::vec2(0.0f, 1.0f)
+	});
+	m_QuadMesh->SetTangents({
+		glm::vec4(1.0f, 0.0f, 0.0f, 1.0f),
+		glm::vec4(1.0f, 0.0f, 0.0f, 1.0f),
+		glm::vec4(1.0f, 0.0f, 0.0f, 1.0f),
+		glm::vec4(1.0f, 0.0f, 0.0f, 1.0f)
+	});
+	m_QuadMesh->SetTriangles({ 0, 1, 2, 2, 3, 0 });
+	m_QuadMesh->RecalculateNormals();
+
+	Log::Trace("Renderer::InitFramebuffer - Initializing Triangle Mesh");
+
+	std::vector<MeshVertex> triangleVertices = {
+		{ glm::vec3( 0.0f,  0.65f, -0.25f), glm::vec3(0.0f, 0.0f, 1.0f), glm::vec2(0.5f, 1.0f), glm::vec2(0.5f, 1.0f), glm::vec4(1.0f, 0.2f, 0.2f, 1.0f), glm::vec4(1.0f, 0.0f, 0.0f, 1.0f) },
+		{ glm::vec3( 0.65f, -0.55f, -0.25f), glm::vec3(0.0f, 0.0f, 1.0f), glm::vec2(1.0f, 0.0f), glm::vec2(1.0f, 0.0f), glm::vec4(0.2f, 1.0f, 0.2f, 1.0f), glm::vec4(1.0f, 0.0f, 0.0f, 1.0f) },
+		{ glm::vec3(-0.65f, -0.55f, -0.25f), glm::vec3(0.0f, 0.0f, 1.0f), glm::vec2(0.0f, 0.0f), glm::vec2(0.0f, 0.0f), glm::vec4(0.2f, 0.4f, 1.0f, 1.0f), glm::vec4(1.0f, 0.0f, 0.0f, 1.0f) }
 	};
 
-	uint32_t indices[] = { 0, 1, 2, 2, 3, 0 };
-
-	Ref<VertexBuffer> quadVB = VertexBuffer::Create(vertices, sizeof(vertices));
-	BufferLayout layout = {
-		{ ShaderDataType::Float3, "a_Position" },
-		{ ShaderDataType::Float2, "a_TexCoord" }
-	};
-	quadVB->SetLayout(layout);
-
-	m_QuadVA = VertexArray::Create();
-	m_QuadVA->AddVertexBuffer(quadVB);
-
-	Ref<IndexBuffer> quadIB = IndexBuffer::Create(indices, sizeof(indices) / sizeof(uint32_t));
-
-	m_QuadVA->SetIndexBuffer(quadIB);
-
-	Log::Trace("Renderer::InitFramebuffer - Initializing Triangle Vertex Array");
-
-	float triangleVertices[] = {
-		// Position                // Color
-		 0.0f,   0.65f, -0.25f,   1.0f, 0.2f, 0.2f,
-		 0.65f, -0.55f, -0.25f,   0.2f, 1.0f, 0.2f,
-		-0.65f, -0.55f, -0.25f,   0.2f, 0.4f, 1.0f
-	};
-
-	uint32_t triangleIndices[] = { 0, 1, 2 };
-
-	Ref<VertexBuffer> triangleVB = VertexBuffer::Create(triangleVertices, sizeof(triangleVertices));
-	BufferLayout triangleLayout = {
-		{ ShaderDataType::Float3, "a_Position" },
-		{ ShaderDataType::Float3, "a_Color" }
-	};
-	triangleVB->SetLayout(triangleLayout);
-
-	m_TriangleVA = VertexArray::Create();
-	m_TriangleVA->AddVertexBuffer(triangleVB);
-
-	Ref<IndexBuffer> triangleIB = IndexBuffer::Create(triangleIndices, sizeof(triangleIndices) / sizeof(uint32_t));
-	m_TriangleVA->SetIndexBuffer(triangleIB);
+	m_TriangleMesh = Mesh::Create(triangleVertices, { 0, 1, 2 });
 }
 
 void Renderer::InitShader() {

@@ -30,11 +30,11 @@ Ref<Shader> Shader::Create(const std::filesystem::path& shaderAssetPath) {
 	}
 
 	if (auto shaderNode = data["Shader"]) {
-		std::string vertexPath = shaderNode["VertexPath"].as<std::string>();
-		std::string fragmentPath = shaderNode["FragmentPath"].as<std::string>();
+		std::string vertexPath = shaderNode["VertexFilepath"].as<std::string>();
+		std::string fragmentPath = shaderNode["FragmentFilepath"].as<std::string>();
 
 		if (vertexPath.empty() || fragmentPath.empty()) {
-			Log::Error("Shader::Create - Shader Asset file is missing vertex or fragment path.");
+			Log::Error("Shader::Create - Shader Asset file is missing vertex or fragment filepath.");
 			return nullptr;
 		}
 

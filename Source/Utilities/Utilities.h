@@ -2,6 +2,8 @@
 
 #include "Core/Settings/Settings.h"
 
+#include "ECS/Components.h"
+
 #include "Editor/Theme/Theme.h"
 
 #include <string>
@@ -25,4 +27,7 @@ public:
 
 	static std::string ExportImageFormatToString(const ExportImageFormat& format);
 	static ExportImageFormat StringToExportImageFormat(const std::string& format);
+
+	static std::string LightTypeToString(const LightType& type);
+	static LightType StringToLightType(const std::string& type);
 };

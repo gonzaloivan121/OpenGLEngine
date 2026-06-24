@@ -215,3 +215,22 @@ ExportImageFormat Utilities::StringToExportImageFormat(const std::string& format
 
 	return ExportImageFormat::PNG;
 }
+
+std::string Utilities::LightTypeToString(const LightType& type) {
+	switch (type) {
+		case LightType::Directional: return "Directional";
+		case LightType::Point:       return "Point";
+		case LightType::Spot:        return "Spot";
+		default:                     return "Unknown";
+	}
+}
+
+LightType Utilities::StringToLightType(const std::string& type) {
+	if (type == "Directional")	return LightType::Directional;
+	if (type == "Point")		return LightType::Point;
+	if (type == "Spot")			return LightType::Spot;
+
+	Log::Error("Utilities::StringToLightType - Unknown Light Type");
+
+	return LightType::Directional;
+}
