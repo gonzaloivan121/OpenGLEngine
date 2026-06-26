@@ -5,5 +5,4 @@
 #include "Components/MaterialComponent.h"
 #include "Components/MeshComponent.h"
 #include "Components/NameComponent.h"
-#include "Components/ShaderComponent.h"
 #include "Components/TransformComponent.h"

@@ -22,23 +22,38 @@ Ref<Shader> Shader::Create(const std::filesystem::path& shaderAssetPath) {
 	Log::Trace("Shader::Create - Creating Shader from Asset File: " + shaderAssetPath.string());
 
 	YAML::Node data;
+	
 	try {
 		data = YAML::LoadFile(shaderAssetPath.string());
-	} catch (YAML::Exception e) {
-		Log::Error("Shader::Create - Failed to load Ahader Asset file: " + e.msg);
+	} catch (const YAML::Exception& e) {
+		Log::Error("Shader::Create - Failed to load Shader Asset file: " + e.msg);
 		return nullptr;
 	}
 
-	if (auto shaderNode = data["Shader"]) {
-		std::string vertexPath = shaderNode["VertexFilepath"].as<std::string>();
-		std::string fragmentPath = shaderNode["FragmentFilepath"].as<std::string>();
+	if (const auto& shaderNode = data["Shader"]) {
+		std::string vertexFilepath;
+		std::string fragmentFilepath;
 
-		if (vertexPath.empty() || fragmentPath.empty()) {
+		if (const auto& vertexFilepathNode = shaderNode["VertexFilepath"]) {
+			vertexFilepath = vertexFilepathNode.as<std::string>();
+		} else {
+			Log::Error("Shader::Create - Shader Asset file is missing VertexFilepath.");
+			return nullptr;
+		}
+
+		if (const auto& fragmentFilepathNode = shaderNode["FragmentFilepath"]) {
+			fragmentFilepath = fragmentFilepathNode.as<std::string>();
+		} else {
+			Log::Error("Shader::Create - Shader Asset file is missing FragmentFilepath.");
+			return nullptr;
+		}
+
+		if (vertexFilepath.empty() || fragmentFilepath.empty()) {
 			Log::Error("Shader::Create - Shader Asset file is missing vertex or fragment filepath.");
 			return nullptr;
 		}
 
-		return CreateGraphics(vertexPath, fragmentPath);
+		return CreateGraphics(vertexFilepath, fragmentFilepath);
 	}
 
 	Log::Error("Shader::Create - Malformed Shader Asset file: " + shaderAssetPath.string());

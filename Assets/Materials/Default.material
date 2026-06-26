@@ -1,14 +1,14 @@
 Material:
-  ShaderFilepath: ""
-  Albedo: [1, 1, 1, 1]
+  ShaderFilepath: Assets\Shaders\Cell.shader
+  Albedo: [0.99999905, 0, 1]
   Metallic: 0.5
   Roughness: 0.5
   AmbientOcclusion: 1
   HeightScale: 0.1
   Emission:
-    Enabled: false
-    Color: [1, 1, 1, 1]
-    Intensity: 1
+    Enabled: true
+    Color: [1, 1, 1]
+    Intensity: 0
   Textures:
     Tiling: [1, 1]
     Offset: [0, 0]

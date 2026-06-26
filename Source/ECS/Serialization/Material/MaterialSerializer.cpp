@@ -8,29 +8,6 @@
 
 namespace YAML {
 	template<>
-	struct convert<glm::vec4> {
-		static Node encode(const glm::vec4& rhs) {
-			Node node;
-			node.push_back(rhs.x);
-			node.push_back(rhs.y);
-			node.push_back(rhs.z);
-			node.push_back(rhs.w);
-			node.SetStyle(EmitterStyle::Flow);
-			return node;
-		}
-
-		static bool decode(const Node& node, glm::vec4& rhs) {
-			if (!node.IsSequence() || node.size() != 4) return false;
-
-			rhs.x = node[0].as<float>();
-			rhs.y = node[1].as<float>();
-			rhs.z = node[2].as<float>();
-			rhs.w = node[3].as<float>();
-			return true;
-		}
-	};
-
-	template<>
 	struct convert<glm::vec3> {
 		static Node encode(const glm::vec3& rhs) {
 			Node node;
@@ -69,12 +46,6 @@ namespace YAML {
 			return true;
 		}
 	};
-
-	static Emitter& operator<<(Emitter& out, const glm::vec4& v) {
-		out << Flow;
-		out << BeginSeq << v.x << v.y << v.z << v.w << EndSeq;
-		return out;
-	}
 
 	static Emitter& operator<<(Emitter& out, const glm::vec3& v) {
 		out << Flow;
@@ -219,14 +190,10 @@ void MaterialSerializer::SerializeTextures(YAML::Emitter& out, const Textures& t
 void MaterialSerializer::DeserializeMaterial(const YAML::Node& materialNode, Material& material) {
 	if (const auto& shaderFilepathNode = materialNode["ShaderFilepath"]) {
 		material.ShaderFilepath = shaderFilepathNode.as<std::string>();
-
-		if (!material.ShaderFilepath.empty()) {
-			
-		}
 	}
 
 	if (const auto& albedoNode = materialNode["Albedo"]) {
-		material.Albedo = albedoNode.as<glm::vec4>();
+		material.Albedo = albedoNode.as<glm::vec3>();
 	}
 
 	if (const auto& metallicNode = materialNode["Metallic"]) {
@@ -260,7 +227,7 @@ void MaterialSerializer::DeserializeEmission(const YAML::Node& emissionNode, Emi
 	}
 
 	if (const auto& colorNode = emissionNode["Color"]) {
-		emission.Color = colorNode.as<glm::vec4>();
+		emission.Color = colorNode.as<glm::vec3>();
 	}
 
 	if (const auto& intensityNode = emissionNode["Intensity"]) {

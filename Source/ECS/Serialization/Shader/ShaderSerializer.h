@@ -1,6 +1,6 @@
 #pragma once
 
-#include "ECS/Shader.h"
+#include "ECS/ShaderAsset.h"
 
 #include "yaml-cpp/yaml.h"
 
@@ -8,11 +8,11 @@
 
 class ShaderSerializer {
 public:
-	ShaderSerializer(Shader& shader);
+	ShaderSerializer(ShaderAsset& shader);
 
 	bool Serialize(const std::filesystem::path& filepath);
 	bool Deserialize(const std::filesystem::path& filepath);
 
 private:
-	Shader& m_Shader;
+	ShaderAsset& m_Shader;
 };

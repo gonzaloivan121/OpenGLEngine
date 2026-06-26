@@ -44,7 +44,18 @@ uniform float u_SpotLightOuterCone[MAX_LIGHTS];
 
 // ------------------------------------------------------------------
 
-vec3 CalcDirectionalLight(int i, vec3 normal, vec3 viewDir, vec3 albedo, float roughness, float metallic) {
+float QuantizeToonDiffuse(float value) {
+    if (value > 0.85) return 1.0;
+    if (value > 0.55) return 0.7;
+    if (value > 0.25) return 0.4;
+    return 0.12;
+}
+
+float QuantizeToonSpecular(float value) {
+    return value > 0.5 ? 1.0 : 0.0;
+}
+
+vec3 CalcDirectionalLight(int i, vec3 normal, vec3 viewDir, vec3 albedo, float roughness, float metallic, bool isToon) {
     vec3 lightDir = normalize(-u_DirLightDirection[i]);
     float diff = max(dot(normal, lightDir), 0.0);
 
@@ -54,12 +65,18 @@ vec3 CalcDirectionalLight(int i, vec3 normal, vec3 viewDir, vec3 albedo, float r
     float spec = pow(max(dot(normal, halfwayDir), 0.0), shininess);
     float specStrength = mix(0.04, 1.0, metallic);
 
+    if (isToon) {
+        diff = QuantizeToonDiffuse(diff);
+        spec = QuantizeToonSpecular(spec);
+        specStrength *= 0.35;
+    }
+
     vec3 diffuse  = diff * albedo * u_DirLightColor[i] * u_DirLightIntensity[i];
     vec3 specular = spec * specStrength * u_DirLightColor[i] * u_DirLightIntensity[i];
     return diffuse + specular;
 }
 
-vec3 CalcPointLight(int i, vec3 fragPos, vec3 normal, vec3 viewDir, vec3 albedo, float roughness, float metallic) {
+vec3 CalcPointLight(int i, vec3 fragPos, vec3 normal, vec3 viewDir, vec3 albedo, float roughness, float metallic, bool isToon) {
     vec3 lightDir = normalize(u_PointLightPosition[i] - fragPos);
     float dist = length(u_PointLightPosition[i] - fragPos);
 
@@ -73,12 +90,18 @@ vec3 CalcPointLight(int i, vec3 fragPos, vec3 normal, vec3 viewDir, vec3 albedo,
     float spec = pow(max(dot(normal, halfwayDir), 0.0), shininess);
     float specStrength = mix(0.04, 1.0, metallic);
 
+    if (isToon) {
+        diff = QuantizeToonDiffuse(diff);
+        spec = QuantizeToonSpecular(spec);
+        specStrength *= 0.35;
+    }
+
     vec3 diffuse  = diff * albedo * u_PointLightColor[i] * u_PointLightIntensity[i] * attenuation;
     vec3 specular = spec * specStrength * u_PointLightColor[i] * u_PointLightIntensity[i] * attenuation;
     return diffuse + specular;
 }
 
-vec3 CalcSpotLight(int i, vec3 fragPos, vec3 normal, vec3 viewDir, vec3 albedo, float roughness, float metallic) {
+vec3 CalcSpotLight(int i, vec3 fragPos, vec3 normal, vec3 viewDir, vec3 albedo, float roughness, float metallic, bool isToon) {
     vec3 lightDir = normalize(u_SpotLightPosition[i] - fragPos);
     float theta = dot(lightDir, normalize(-u_SpotLightDirection[i]));
     float epsilon = u_SpotLightInnerCone[i] - u_SpotLightOuterCone[i];
@@ -93,6 +116,13 @@ vec3 CalcSpotLight(int i, vec3 fragPos, vec3 normal, vec3 viewDir, vec3 albedo, 
     float shininess = mix(128.0, 2.0, roughness);
     float spec = pow(max(dot(normal, halfwayDir), 0.0), shininess);
     float specStrength = mix(0.04, 1.0, metallic);
+
+    if (isToon) {
+        diff = QuantizeToonDiffuse(diff);
+        spec = QuantizeToonSpecular(spec);
+        specStrength *= 0.35;
+        intensity = QuantizeToonDiffuse(intensity);
+    }
 
     vec3 diffuse  = diff * albedo * u_SpotLightColor[i] * u_SpotLightIntensity[i] * intensity;
     vec3 specular = spec * specStrength * u_SpotLightColor[i] * u_SpotLightIntensity[i] * intensity;
@@ -116,27 +146,32 @@ void main() {
     float metallic  = materialData.r;
     float ao        = materialData.g;
     float emission  = materialData.b;
+    bool isToon     = materialData.a > 0.5;
 
     vec3 viewDir = normalize(u_CameraPosition - fragPos);
 
     // Ambient
     vec3 ambient = 0.03 * albedo * ao;
 
+    if (isToon) {
+        ambient = 0.08 * albedo * ao;
+    }
+
     vec3 lighting = ambient;
 
     // Directional lights
     for (int i = 0; i < u_DirLightCount; ++i) {
-        lighting += CalcDirectionalLight(i, normal, viewDir, albedo, roughness, metallic);
+        lighting += CalcDirectionalLight(i, normal, viewDir, albedo, roughness, metallic, isToon);
     }
 
     // Point lights
     for (int i = 0; i < u_PointLightCount; ++i) {
-        lighting += CalcPointLight(i, fragPos, normal, viewDir, albedo, roughness, metallic);
+        lighting += CalcPointLight(i, fragPos, normal, viewDir, albedo, roughness, metallic, isToon);
     }
 
     // Spot lights
     for (int i = 0; i < u_SpotLightCount; ++i) {
-        lighting += CalcSpotLight(i, fragPos, normal, viewDir, albedo, roughness, metallic);
+        lighting += CalcSpotLight(i, fragPos, normal, viewDir, albedo, roughness, metallic, isToon);
     }
 
     // Emission

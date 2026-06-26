@@ -24,7 +24,6 @@ namespace {
 		ComponentRegistry::Register<CameraComponent>("Camera");
 		ComponentRegistry::Register<MaterialComponent>("Material");
 		ComponentRegistry::Register<MeshComponent>("Mesh");
-		ComponentRegistry::Register<ShaderComponent>("Shader");
 
 		s_Registered = true;
 	}
@@ -120,11 +119,14 @@ void InspectorWindow::OnUIRender() {
 
 				if (!materialComponent->MaterialFilepath.empty()) {
 					UI::Separator();
-
 					auto& material = materialComponent->Material;
 					bool materialAssetChanged = false;
 
-					materialAssetChanged |= UI::ColorEdit4("Albedo", material.Albedo);
+					materialAssetChanged |= UI::ShaderSlot("Shader", material.ShaderFilepath);
+
+					UI::Separator();
+
+					materialAssetChanged |= UI::ColorEdit3("Albedo", material.Albedo);
 					materialAssetChanged |= UI::DragFloat("Metallic", material.Metallic, 0.0f, 1.0f, 0.01f);
 					materialAssetChanged |= UI::DragFloat("Roughness", material.Roughness, 0.0f, 1.0f, 0.01f);
 					materialAssetChanged |= UI::DragFloat("Ambient Occlusion", material.AmbientOcclusion, 0.0f, 1.0f, 0.01f);
@@ -138,7 +140,7 @@ void InspectorWindow::OnUIRender() {
 						if (emission.Enabled) {
 							UI::Separator();
 
-							materialAssetChanged |= UI::ColorEdit4("Color", emission.Color);
+							materialAssetChanged |= UI::ColorEdit3("Color", emission.Color);
 							materialAssetChanged |= UI::DragFloat("Intensity", emission.Intensity, 0.0f, 100.0f, 0.01f);
 						}
 					}
@@ -181,12 +183,6 @@ void InspectorWindow::OnUIRender() {
 					UI::Bool("Cast Shadows", meshComponent->CastShadows);
 					UI::Bool("Receive Shadows", meshComponent->ReceiveShadows);
 				}
-			}
-		}
-
-		if (auto* shaderComponent = entity.GetComponent<ShaderComponent>()) {
-			if (UI::CollapsingHeader("Shader")) {
-				UI::ShaderSlot("Shader", shaderComponent->ShaderFilepath);
 			}
 		}
 

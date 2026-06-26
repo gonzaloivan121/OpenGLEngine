@@ -4,7 +4,7 @@
 
 #include <fstream>
 
-ShaderSerializer::ShaderSerializer(Shader& shader)
+ShaderSerializer::ShaderSerializer(ShaderAsset& shader)
 	: m_Shader(shader)
 {
 	Log::Trace("ShaderSerializer::ShaderSerializer - Setting up Shader Serializer");

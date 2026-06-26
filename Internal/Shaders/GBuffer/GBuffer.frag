@@ -10,11 +10,11 @@ in vec3 v_WorldPosition;
 in vec3 v_Normal;
 in vec2 v_TexCoord;
 
-uniform vec4 u_Albedo = vec4(0.8, 0.8, 0.8, 1.0);
+uniform vec3 u_Albedo = vec3(0.8, 0.8, 0.8);
 uniform float u_Metallic = 0.0;
 uniform float u_Roughness = 0.5;
 uniform float u_AmbientOcclusion = 1.0;
-uniform vec4 u_EmissionColor = vec4(1.0, 1.0, 1.0, 1.0);
+uniform vec3 u_EmissionColor = vec3(1.0, 1.0, 1.0);
 uniform float u_EmissionIntensity = 0.0;
 uniform bool u_EmissionEnabled = false;
 
@@ -23,6 +23,6 @@ void main() {
 
     gPosition = vec4(v_WorldPosition, 1.0);
     gNormal   = vec4(normalize(v_Normal), 0.0);
-    gAlbedo   = vec4(u_Albedo.rgb, u_Roughness);
+    gAlbedo   = vec4(u_Albedo, u_Roughness);
     gMaterial = vec4(u_Metallic, u_AmbientOcclusion, emission, 0.0);
 }

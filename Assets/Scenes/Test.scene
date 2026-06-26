@@ -29,8 +29,6 @@ Scene:
             MeshFilepath: Assets\Meshes\Cube.obj
             CastShadows: true
             ReceiveShadows: true
-          ShaderComponent:
-            ShaderFilepath: Assets\Shaders\Default.shader
     - Entity:
         ID: 16153110954094287203
         Components:

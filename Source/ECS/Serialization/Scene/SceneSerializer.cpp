@@ -197,10 +197,6 @@ void SceneSerializer::SerializeEntity(YAML::Emitter& out, const Entity& entity) 
 				if (entity.HasComponent<MeshComponent>()) {
 					SerializeMeshComponent(out, entity.GetComponent<MeshComponent>());
 				}
-
-				if (entity.HasComponent<ShaderComponent>()) {
-					SerializeShaderComponent(out, entity.GetComponent<ShaderComponent>());
-				}
 			}
 
 			out << YAML::EndMap; // Components
@@ -264,14 +260,6 @@ void SceneSerializer::SerializeNameComponent(YAML::Emitter& out, const NameCompo
 	out << YAML::EndMap; // NameComponent
 }
 
-void SceneSerializer::SerializeShaderComponent(YAML::Emitter& out, const ShaderComponent* shader) {
-	out << YAML::Key << "ShaderComponent" << YAML::Value << YAML::BeginMap; // ShaderComponent
-	{
-		out << YAML::Key << "ShaderFilepath" << YAML::Value << shader->ShaderFilepath.string();
-	}
-	out << YAML::EndMap; // ShaderComponent
-}
-
 void SceneSerializer::SerializeTransformComponent(YAML::Emitter& out, const TransformComponent* transform) {
 	out << YAML::Key << "TransformComponent" << YAML::Value << YAML::BeginMap; // TransformComponent
 	{
@@ -310,10 +298,6 @@ void SceneSerializer::DeserializeEntity(const YAML::Node& entityNode) {
 
 			if (const auto& meshComponentNode = componentsNode["MeshComponent"]) {
 				DeserializeMeshComponent(meshComponentNode, entity);
-			}
-
-			if (const auto& shaderComponentNode = componentsNode["ShaderComponent"]) {
-				DeserializeShaderComponent(shaderComponentNode, entity);
 			}
 		}
 	}
@@ -412,6 +396,11 @@ void SceneSerializer::DeserializeMaterialComponent(const YAML::Node& materialNod
 			}
 		}
 	}
+
+	// Backward compatibility: migrate legacy scene-level ShaderFilepath into the material asset instance.
+	if (const auto& shaderFilepathNode = materialNode["ShaderFilepath"]) {
+		material.Material.ShaderFilepath = shaderFilepathNode.as<std::string>();
+	}
 }
 
 void SceneSerializer::DeserializeMeshComponent(const YAML::Node& meshNode, Entity& entity) {
@@ -445,22 +434,6 @@ void SceneSerializer::DeserializeNameComponent(const YAML::Node& nameNode, Entit
 
 	if (const auto& nameValueNode = nameNode["Name"]) {
 		name.Name = nameValueNode.as<std::string>();
-	}
-}
-
-void SceneSerializer::DeserializeShaderComponent(const YAML::Node& shaderNode, Entity& entity) {
-	if (entity.HasComponent<ShaderComponent>()) {
-		Log::Warning("SceneSerializer::DeserializeShaderComponent - Entity already has a ShaderComponent, overwriting");
-		entity.RemoveComponent<ShaderComponent>();
-	}
-
-	auto& shader = entity.AddComponent<ShaderComponent>();
-
-	if (const auto& shaderFilepathNode = shaderNode["ShaderFilepath"]) {
-		shader.ShaderFilepath = shaderFilepathNode.as<std::string>();
-	} else if (const auto& legacyShaderNode = shaderNode["Shader"]) {
-		// Legacy compatibility for older scene files using the old key.
-		shader.ShaderFilepath = legacyShaderNode.as<std::string>();
 	}
 }
 

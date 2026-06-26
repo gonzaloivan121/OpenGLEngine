@@ -5,7 +5,7 @@
 
 struct Emission {
 	bool Enabled = false;
-	glm::vec4 Color = glm::vec4(1.0f);
+	glm::vec3 Color = glm::vec3(1.0f);
 	float Intensity = 1.0f;
 };
 
@@ -23,7 +23,7 @@ struct Textures {
 
 struct Material {
 	std::filesystem::path ShaderFilepath;
-	glm::vec4 Albedo = glm::vec4(1.0f);
+	glm::vec3 Albedo = glm::vec3(1.0f);
 	float Metallic = 0.5f;
 	float Roughness = 0.5f;
 	float AmbientOcclusion = 1.0f;

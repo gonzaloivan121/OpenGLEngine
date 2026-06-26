@@ -22,7 +22,6 @@ private:
 	void SerializeMaterialComponent(YAML::Emitter& out, const MaterialComponent* material);
 	void SerializeMeshComponent(YAML::Emitter& out, const MeshComponent* mesh);
 	void SerializeNameComponent(YAML::Emitter& out, const NameComponent* name);
-	void SerializeShaderComponent(YAML::Emitter& out, const ShaderComponent* shader);
 	void SerializeTransformComponent(YAML::Emitter& out, const TransformComponent* transform);
 
 private:
@@ -33,7 +32,6 @@ private:
 	void DeserializeMaterialComponent(const YAML::Node& materialNode, Entity& entity);
 	void DeserializeMeshComponent(const YAML::Node& meshNode, Entity& entity);
 	void DeserializeNameComponent(const YAML::Node& nameNode, Entity& entity);
-	void DeserializeShaderComponent(const YAML::Node& shaderNode, Entity& entity);
 	void DeserializeTransformComponent(const YAML::Node& transformNode, Entity& entity);
 
 private:

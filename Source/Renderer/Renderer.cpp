@@ -310,30 +310,36 @@ void Renderer::GeometryPass(Scene& scene) {
 	// Draw each entity that has a mesh and a shader
 	for (const auto& id : scene.GetEntityIDs()) {
 		Entity entity = scene.GetEntity(id);
-		auto* mc = entity.GetComponent<MeshComponent>();
-		const auto* sc = entity.GetComponent<ShaderComponent>();
+		auto* mesh = entity.GetComponent<MeshComponent>();
+
 		const auto* material = entity.GetComponent<MaterialComponent>();
-		const auto* tc = entity.GetComponent<TransformComponent>();
+		const auto* transform = entity.GetComponent<TransformComponent>();
 
-		if (!mc || !tc) continue;
-
-		if (!mc->Mesh && !mc->MeshFilepath.empty()) {
-			mc->Mesh = TryLoadOBJMesh(mc->MeshFilepath);
+		if (!mesh || !transform) {
+			continue;
 		}
 
-		if (!mc->Mesh) continue;
+		if (!mesh->Mesh && !mesh->MeshFilepath.empty()) {
+			mesh->Mesh = TryLoadOBJMesh(mesh->MeshFilepath);
+		}
+
+		if (!mesh->Mesh) {
+			continue;
+		}
 
 		Ref<Shader> shader = nullptr;
-		if (sc && !sc->ShaderFilepath.empty()) {
-			shader = GetOrLoadShader(sc->ShaderFilepath);
+		if (material && !material->Material.ShaderFilepath.empty()) {
+			shader = GetOrLoadShader(material->Material.ShaderFilepath);
 		} else {
 			shader = m_DefaultGeometryShader;
 		}
 
-		if (!shader) continue;
+		if (!shader) {
+			continue;
+		}
 
 		shader->Bind();
-		shader->SetUniform("u_Model",          tc->GetTransform());
+		shader->SetUniform("u_Model",          transform->GetTransform());
 		shader->SetUniform("u_View",           s_SceneData.View);
 		shader->SetUniform("u_Projection",     s_SceneData.Projection);
 		shader->SetUniform("u_ViewProjection", s_SceneData.ViewProjection);
@@ -350,9 +356,8 @@ void Renderer::GeometryPass(Scene& scene) {
 			shader->SetUniform("u_EmissionEnabled", material->Material.Emission.Enabled);
 		}
 
-		const Ref<VertexArray>& va = mc->Mesh->GetVertexArray();
-		if (va) {
-			RenderCommand::DrawIndexed(va);
+		if (const auto& vertexArray = mesh->Mesh->GetVertexArray()) {
+			RenderCommand::DrawIndexed(vertexArray);
 		}
 	}
 
@@ -363,7 +368,9 @@ void Renderer::BackgroundPass() {
 	s_Framebuffer->Bind();
 	RenderCommand::Clear();
 
-	if (!m_Shader || !m_QuadMesh) return;
+	if (!m_Shader || !m_QuadMesh) {
+		return;
+	}
 
 	RenderCommand::EnableDepthTest(false);
 
@@ -373,17 +380,17 @@ void Renderer::BackgroundPass() {
 		static_cast<float>(s_Framebuffer->GetHeight())
 	));
 
-	const Ref<VertexArray>& va = m_QuadMesh->GetVertexArray();
-	if (va) {
-		RenderCommand::DrawIndexed(va);
+	if (const auto& vertexArray = m_QuadMesh->GetVertexArray()) {
+		RenderCommand::DrawIndexed(vertexArray);
 	}
 
 	RenderCommand::EnableDepthTest(true);
-	// Leave s_Framebuffer bound for the lighting pass
 }
 
 void Renderer::LightingPass(Scene& scene) {
-	if (!m_LightingShader || !m_QuadMesh) return;
+	if (!m_LightingShader || !m_QuadMesh) {
+		return;
+	}
 
 	// Bind G-Buffer textures to sampler units 0-3
 	if (const auto& pos = s_GBuffer->GetColorAttachment(0)) pos->Bind(0);
@@ -414,36 +421,39 @@ void Renderer::LightingPass(Scene& scene) {
 
 	for (const auto& id : scene.GetEntityIDs()) {
 		Entity entity = scene.GetEntity(id);
-		const auto* lc = entity.GetComponent<LightComponent>();
-		const auto* tc = entity.GetComponent<TransformComponent>();
-		if (!lc || !tc) continue;
+		const auto* light = entity.GetComponent<LightComponent>();
+		const auto* transform = entity.GetComponent<TransformComponent>();
 
-		switch (lc->Type) {
+		if (!light || !transform) {
+			continue;
+		}
+
+		switch (light->Type) {
 			case LightType::Directional:
 				if (static_cast<int>(dirDirections.size()) < MAX_LIGHTS) {
-					dirDirections.push_back(lc->Direction);
-					dirColors.push_back(lc->Color);
-					dirIntensities.push_back(lc->Intensity);
+					dirDirections.push_back(light->Direction);
+					dirColors.push_back(light->Color);
+					dirIntensities.push_back(light->Intensity);
 				}
 				break;
 			case LightType::Point:
 				if (static_cast<int>(pointPositions.size()) < MAX_LIGHTS) {
-					pointPositions.push_back(tc->Position);
-					pointColors.push_back(lc->Color);
-					pointIntensities.push_back(lc->Intensity);
-					pointRanges.push_back(lc->Range);
-					pointLinears.push_back(lc->Linear);
-					pointQuadratics.push_back(lc->Quadratic);
+					pointPositions.push_back(transform->Position);
+					pointColors.push_back(light->Color);
+					pointIntensities.push_back(light->Intensity);
+					pointRanges.push_back(light->Range);
+					pointLinears.push_back(light->Linear);
+					pointQuadratics.push_back(light->Quadratic);
 				}
 				break;
 			case LightType::Spot:
 				if (static_cast<int>(spotPositions.size()) < MAX_LIGHTS) {
-					spotPositions.push_back(tc->Position);
-					spotDirections.push_back(lc->Direction);
-					spotColors.push_back(lc->Color);
-					spotIntensities.push_back(lc->Intensity);
-					spotInnerCones.push_back(lc->InnerCone);
-					spotOuterCones.push_back(lc->OuterCone);
+					spotPositions.push_back(transform->Position);
+					spotDirections.push_back(light->Direction);
+					spotColors.push_back(light->Color);
+					spotIntensities.push_back(light->Intensity);
+					spotInnerCones.push_back(light->InnerCone);
+					spotOuterCones.push_back(light->OuterCone);
 				}
 				break;
 		}
@@ -480,22 +490,25 @@ void Renderer::LightingPass(Scene& scene) {
 	}
 
 	RenderCommand::EnableDepthTest(false);
-	const Ref<VertexArray>& va = m_QuadMesh->GetVertexArray();
-	if (va) {
-		RenderCommand::DrawIndexed(va);
+
+	if (const auto& vertexArray = m_QuadMesh->GetVertexArray()) {
+		RenderCommand::DrawIndexed(vertexArray);
 	}
+
 	RenderCommand::EnableDepthTest(true);
-	// s_Framebuffer remains bound; Renderer::End() unbinds it
 }
 
 Ref<Shader> Renderer::GetOrLoadShader(const std::filesystem::path& path) {
 	const std::string key = path.string();
 	const auto it = m_ShaderCache.find(key);
+
 	if (it != m_ShaderCache.end()) {
 		return it->second;
 	}
+
 	Ref<Shader> shader = Shader::Create(path);
 	m_ShaderCache[key] = shader;
+	
 	return shader;
 }
 

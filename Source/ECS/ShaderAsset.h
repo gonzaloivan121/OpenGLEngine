@@ -2,7 +2,7 @@
 
 #include <filesystem>
 
-struct Shader {
+struct ShaderAsset {
 	std::filesystem::path VertexFilepath;
 	std::filesystem::path FragmentFilepath;
 };
