@@ -242,7 +242,17 @@ void SettingsWindow::DrawEditorSettings(EditorSettings& editorSettings) {
 		UI::DragFloat("Column Width", appearanceSettings.ColumnWidth, 0.0f, 300.0f);
 		UI::Tooltip("Changes the column width for the Property Grid Name Column");
 
-		UI::Separator();
+		if (UI::CollapsingHeader("Project Window")) {
+			auto& projectWindowSettings = appearanceSettings.ProjectWindow;
+
+			UI::SliderFloat("Icon Size", projectWindowSettings.IconSize, 16.0f, 300.0f);
+			UI::Tooltip("Changes the size of the icons in the Project Window.");
+
+			UI::SliderFloat("Icon Padding", projectWindowSettings.IconPadding, 24.0f, 100.0f);
+			UI::Tooltip("Changes the padding between icons in the Project Window.");
+			
+			UI::Separator();
+		}
 	}
 
 	UI::DragInt("Auto Save Interval", editorSettings.AutoSaveInterval, 0, 86400);

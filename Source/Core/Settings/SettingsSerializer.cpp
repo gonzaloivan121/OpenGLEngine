@@ -210,6 +210,13 @@ void SettingsSerializer::SerializeEditorSettings(YAML::Emitter& out) {
 			out << YAML::Key << "FontSize" << YAML::Value << appearance.FontSize;
 			out << YAML::Key << "UIScale" << YAML::Value << appearance.UIScale;
 			out << YAML::Key << "ColumnWidth" << YAML::Value << appearance.ColumnWidth;
+			out << YAML::Key << "ProjectWindow" << YAML::Value << YAML::BeginMap; // ProjectWindow
+			{
+				const auto& projectWindow = appearance.ProjectWindow;
+				out << YAML::Key << "IconSize" << YAML::Value << projectWindow.IconSize;
+				out << YAML::Key << "IconPadding" << YAML::Value << projectWindow.IconPadding;
+			}
+			out << YAML::EndMap; // ProjectWindow
 		}
 		out << YAML::EndMap; // Appearance
 
@@ -336,6 +343,18 @@ void SettingsSerializer::DeserializeEditorSettings(const YAML::Node& settingsNod
 
 			if (const auto& columnWidthNode = appearanceNode["ColumnWidth"]) {
 				appearance.ColumnWidth = columnWidthNode.as<float>();
+			}
+
+			if (const auto& projectWindowNode = appearanceNode["ProjectWindow"]) {
+				auto& projectWindow = appearance.ProjectWindow;
+
+				if (const auto& iconSizeNode = projectWindowNode["IconSize"]) {
+					projectWindow.IconSize = iconSizeNode.as<float>();
+				}
+
+				if (const auto& iconPaddingNode = projectWindowNode["IconPadding"]) {
+					projectWindow.IconPadding = iconPaddingNode.as<float>();
+				}
 			}
 		}
 

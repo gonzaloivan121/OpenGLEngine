@@ -16,6 +16,9 @@ Settings:
       FontSize: 13
       UIScale: 1
       ColumnWidth: 150
+      ProjectWindow:
+        IconSize: 64
+        IconPadding: 24
     Windows:
       ShowAbout: false
       ShowInspector: true

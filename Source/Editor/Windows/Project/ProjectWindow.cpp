@@ -1,6 +1,7 @@
 #include "ProjectWindow.h"
 
 #include "Core/Log/Log.h"
+#include "Core/Settings/SettingsManager.h"
 
 #include "Editor/Payload.h"
 
@@ -75,22 +76,13 @@ void ProjectWindow::OnUIRender() {
 	ImGui::Begin("Project", &m_IsOpen);
 
 	const auto& style = ImGui::GetStyle();
-	float sliderFooterHeight =
-		ImGui::GetFrameHeight()
-		+ style.WindowPadding.y * 2.0f
-		+ style.ChildBorderSize * 2.0f
-		+ style.ItemSpacing.y * 2.0f;
 
 	DrawBreadcrumbs();
 	ImGui::Separator();
 
-	ImGui::BeginChild("FOLDER_CONTENT_CHILD", { 0, -sliderFooterHeight }, ImGuiChildFlags_Borders);
+	ImGui::BeginChild("FOLDER_CONTENT_CHILD", { 0, 0 }, ImGuiChildFlags_Borders);
 	DrawFolderContent();
 	DrawBackgroundContextMenu();
-	ImGui::EndChild();
-
-	ImGui::BeginChild("ICON_SIZE_CHILD", { 0, 0 }, ImGuiChildFlags_Borders);
-	DrawIconSizeSlider();
 	ImGui::EndChild();
 
 	if (m_OpenDeleteModal) {
@@ -104,7 +96,10 @@ void ProjectWindow::OnUIRender() {
 }
 
 void ProjectWindow::DrawFolderContent() {
-	float cellSize   = m_ThumbnailSize + m_Padding;
+	const auto& settings = SettingsManager::Get();
+	const auto& project = settings.Editor.Appearance.ProjectWindow;
+
+	float cellSize   = project.IconSize + project.IconPadding;
 	float panelWidth = ImGui::GetContentRegionAvail().x;
 	int columnCount  = std::max(1, (int)(panelWidth / cellSize));
 
@@ -132,6 +127,9 @@ void ProjectWindow::DrawFolderContent() {
 }
 
 void ProjectWindow::DrawItem(const std::filesystem::directory_entry& entry) {
+	const auto& settings = SettingsManager::Get();
+	const auto& project = settings.Editor.Appearance.ProjectWindow;
+
 	const auto& path          = entry.path();
 	const std::string pathStr = path.string();
 	const std::string name    = path.filename().string();
@@ -147,7 +145,7 @@ void ProjectWindow::DrawItem(const std::filesystem::directory_entry& entry) {
 		: ImVec4(0, 0, 0, 0));
 
 	ImGui::ImageButton(name.c_str(), (ImTextureID)icon->GetHandle(),
-		{ m_ThumbnailSize, m_ThumbnailSize }, { 0, 1 }, { 1, 0 }, { 0, 0, 0, 0 });
+		{ project.IconSize, project.IconSize }, { 0, 1 }, { 1, 0 }, { 0, 0, 0, 0 });
 
 	ImGui::PopStyleColor();
 
@@ -177,7 +175,10 @@ void ProjectWindow::DrawItem(const std::filesystem::directory_entry& entry) {
 
 void ProjectWindow::DrawItemLabel(const std::filesystem::path& path) {
 	if (m_RenamingPath && *m_RenamingPath == path) {
-		ImGui::SetNextItemWidth(m_ThumbnailSize);
+		const auto& settings = SettingsManager::Get();
+		const auto& project = settings.Editor.Appearance.ProjectWindow;
+
+		ImGui::SetNextItemWidth(project.IconSize);
 
 		if (m_FocusRenameInput) {
 			ImGui::SetKeyboardFocusHere();
@@ -253,6 +254,10 @@ void ProjectWindow::DrawBackgroundContextMenu() {
 
 		if (ImGui::MenuItem("Material")) {
 			CreateMaterial(m_CurrentDirectory);
+		}
+
+		if (ImGui::MenuItem("Shader")) {
+			CreateShader(m_CurrentDirectory);
 		}
 
 		ImGui::EndMenu();
@@ -361,11 +366,6 @@ void ProjectWindow::DrawDeleteModal() {
 	ImGui::EndPopup();
 }
 
-void ProjectWindow::DrawIconSizeSlider() {
-	ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x);
-	UI::SliderFloat("IconSize", m_ThumbnailSize, 16.0f, 256.0f);
-}
-
 void ProjectWindow::CreateFolder(const std::filesystem::path& directory) {
 	std::filesystem::path folderPath = GenerateUniqueFilename(directory / "New Folder");
 	std::error_code ec;
@@ -391,6 +391,14 @@ void ProjectWindow::CreateMaterial(const std::filesystem::path& directory) {
 
 	if (m_MaterialNewCallback) {
 		m_MaterialNewCallback(filepath);
+	}
+}
+
+void ProjectWindow::CreateShader(const std::filesystem::path& directory) {
+	std::filesystem::path filepath = GenerateUniqueFilename(directory / "New Shader.shader");
+
+	if (m_ShaderNewCallback) {
+		m_ShaderNewCallback(filepath);
 	}
 }
 

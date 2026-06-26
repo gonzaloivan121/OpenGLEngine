@@ -25,11 +25,12 @@ private:
 	void DrawScenesRecursive(const std::filesystem::path& directoryPath);
 
 	bool NewScene(const std::filesystem::path& filepath);
-	bool CreateSceneAsset(const std::filesystem::path& filepath);
 	bool SaveScene(const std::filesystem::path& filepath);
 	bool LoadScene(const std::filesystem::path& filepath);
 
-	bool NewMaterial(const std::filesystem::path& filepath);
+	bool CreateSceneAsset(const std::filesystem::path& filepath);
+	bool CreateMaterialAsset(const std::filesystem::path& filepath);
+	bool CreateShaderAsset(const std::filesystem::path& filepath);
 
 	void ExportFrameAsImage();
 

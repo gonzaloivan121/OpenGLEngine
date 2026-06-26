@@ -19,6 +19,8 @@ public:
 
 	using MaterialNewCallback = std::function<void(const std::filesystem::path&)>;
 
+	using ShaderNewCallback = std::function<void(const std::filesystem::path&)>;
+
 	ProjectWindow(bool& isOpen) : Window(isOpen) {}
 
 	virtual void OnCreate() override;
@@ -31,6 +33,7 @@ public:
 	void SetSceneNewCallback(const SceneNewCallback& callback) { m_SceneNewCallback = callback; }
 
 	void SetMaterialNewCallback(const MaterialNewCallback& callback) { m_MaterialNewCallback = callback; }
+	void SetShaderNewCallback(const ShaderNewCallback& callback) { m_ShaderNewCallback = callback; }
 
 private:
 	struct DragDropSourceType {
@@ -50,12 +53,11 @@ private:
 	void DrawItemContextMenu(const std::filesystem::path& path);
 	void DrawDeleteModal();
 
-	void DrawIconSizeSlider();
-
 	// File operations
 	void CreateFolder(const std::filesystem::path& directory);
 	void CreateScene(const std::filesystem::path& directory);
 	void CreateMaterial(const std::filesystem::path& directory);
+	void CreateShader(const std::filesystem::path& directory);
 	void DeleteItem(const std::filesystem::path& path);
 	void RenameItem(const std::filesystem::path& oldPath, const std::string& newStem);
 	void DuplicateItem(const std::filesystem::path& path);
@@ -92,9 +94,6 @@ private:
 	Ref<Texture2D> m_ShaderIcon;
 	std::vector<DragDropSourceType> m_DragDropSourceTypes;
 
-	float m_Padding = 24.0f;
-	float m_ThumbnailSize = 96.0f;
-
 	// Rename state
 	std::optional<std::filesystem::path> m_RenamingPath;
 	char m_RenameBuffer[256] = {};
@@ -111,4 +110,6 @@ private:
 	SceneNewCallback m_SceneNewCallback;
 
 	MaterialNewCallback m_MaterialNewCallback;
+
+	ShaderNewCallback m_ShaderNewCallback;
 };

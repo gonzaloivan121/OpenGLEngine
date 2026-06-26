@@ -6,6 +6,8 @@
 #include "Core/Input/Input.h"
 
 #include "ECS/Serialization/Scene/SceneSerializer.h"
+#include "ECS/Serialization/Material/MaterialSerializer.h"
+#include "ECS/Serialization/Shader/ShaderSerializer.h"
 
 #include "Renderer/Renderer.h"
 
@@ -32,7 +34,10 @@ void EditorLayer::OnCreate() {
 		CreateSceneAsset(filepath);
 	});
 	projectWindow->SetMaterialNewCallback([this](const std::filesystem::path& filepath) {
-		NewMaterial(filepath);
+		CreateMaterialAsset(filepath);
+	});
+	projectWindow->SetShaderNewCallback([this](const std::filesystem::path& filepath) {
+		CreateShaderAsset(filepath);
 	});
 	m_Windows.emplace_back(std::move(projectWindow));
 
@@ -265,21 +270,6 @@ bool EditorLayer::NewScene(const std::filesystem::path& filepath) {
 	return false;
 }
 
-bool EditorLayer::CreateSceneAsset(const std::filesystem::path& filepath) {
-	Log::Trace("EditorLayer::CreateSceneAsset - Creating Scene asset at " + filepath.string());
-
-	Scene scene;
-	SceneSerializer serializer(scene);
-
-	if (serializer.Serialize(filepath)) {
-		Log::Info("EditorLayer::CreateSceneAsset - Scene asset created");
-		return true;
-	}
-
-	Log::Warning("EditorLayer::CreateSceneAsset - Couldn't create Scene asset");
-	return false;
-}
-
 bool EditorLayer::SaveScene(const std::filesystem::path& filepath) {
 	Log::Info("EditorLayer::SaveScene - Saving Scene to " + filepath.string());
 
@@ -325,7 +315,48 @@ bool EditorLayer::LoadScene(const std::filesystem::path& filepath) {
 	return false;
 }
 
-bool EditorLayer::NewMaterial(const std::filesystem::path& filepath) {
+bool EditorLayer::CreateSceneAsset(const std::filesystem::path& filepath) {
+	Log::Trace("EditorLayer::CreateSceneAsset - Creating Scene asset at " + filepath.string());
+
+	Scene scene;
+	SceneSerializer serializer(scene);
+
+	if (serializer.Serialize(filepath)) {
+		Log::Info("EditorLayer::CreateSceneAsset - Scene asset created");
+		return true;
+	}
+
+	Log::Warning("EditorLayer::CreateSceneAsset - Couldn't create Scene asset");
+	return false;
+}
+
+bool EditorLayer::CreateMaterialAsset(const std::filesystem::path& filepath) {
+	Log::Trace("EditorLayer::CreateMaterialAsset - Creating Material asset at " + filepath.string());
+
+	Material material;
+	MaterialSerializer serializer(material);
+
+	if (serializer.Serialize(filepath)) {
+		Log::Info("EditorLayer::CreateMaterialAsset - Material asset created");
+		return true;
+	}
+
+	Log::Warning("EditorLayer::CreateMaterialAsset - Couldn't create Material asset");
+	return false;
+}
+
+bool EditorLayer::CreateShaderAsset(const std::filesystem::path& filepath) {
+	Log::Trace("EditorLayer::CreateShaderAsset - Creating Shader asset at " + filepath.string());
+
+	ShaderAsset shader;
+	ShaderSerializer serializer(shader);
+
+	if (serializer.Serialize(filepath)) {
+		Log::Info("EditorLayer::CreateShaderAsset - Shader asset created");
+		return true;
+	}
+
+	Log::Warning("EditorLayer::CreateShaderAsset - Couldn't create Shader asset");
 	return false;
 }
 

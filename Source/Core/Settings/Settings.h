@@ -244,6 +244,14 @@ enum class EditorTheme {
 	Windark
 };
 
+struct ProjectWindowSettings {
+	/// @brief The size of project icons displayed in the editor interface, which can affect the visibility and appearance of project assets.
+	float IconSize = 96.0f;
+
+	/// @brief The padding between project icons in the editor interface, which can affect the layout and spacing of project assets.
+	float IconPadding = 24.0f;
+};
+
 /**
  * Represents the appearance settings for the editor, including the theme, font size, UI scale, and column width.
  * 
@@ -261,6 +269,9 @@ struct AppearanceSettings {
 
 	/// @brief The width of columns in the editor interface, which can affect the layout and organization of content within the editor.
 	float ColumnWidth = 200.0f;
+
+	/// @brief The settings specific to the Project window in the editor, including icon size and padding.
+	ProjectWindowSettings ProjectWindow;
 };
 
 /**
