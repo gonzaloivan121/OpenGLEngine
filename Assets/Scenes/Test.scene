@@ -20,8 +20,8 @@ Scene:
           NameComponent:
             Name: Cube
           TransformComponent:
-            Position: [0, 0, 0]
-            Rotation: [45, 45, 600]
+            Position: [0, 0, -2.9802322e-08]
+            Rotation: [-19.7, -56.8, 0]
             Scale: [1, 1, 1]
           MaterialComponent:
             MaterialFilepath: Assets/Materials/Default.material
@@ -35,12 +35,52 @@ Scene:
           NameComponent:
             Name: Point Light
           TransformComponent:
-            Position: [0, 0, 0]
+            Position: [-2.5, 2.5, 0]
             Rotation: [0, 0, 0]
             Scale: [1, 1, 1]
           LightComponent:
             Type: Point
-            Color: [1, 1, 1]
+            Color: [1, 0, 0]
+            Intensity: 1
+            Range: 20
+            Direction: [0, 0, 0]
+            Constant: 1
+            Linear: 0.09
+            Quadratic: 0.032
+            InnerCone: 0.9659258
+            OuterCone: 0.8660254
+    - Entity:
+        ID: 17778858191484069562
+        Components:
+          NameComponent:
+            Name: Point Light
+          TransformComponent:
+            Position: [2.5, 2.5, 0]
+            Rotation: [0, 0, 0]
+            Scale: [1, 1, 1]
+          LightComponent:
+            Type: Point
+            Color: [0, 1, 0]
+            Intensity: 1
+            Range: 10
+            Direction: [-0.2, -1, -0.3]
+            Constant: 1
+            Linear: 0.09
+            Quadratic: 0.032
+            InnerCone: 0.9659258
+            OuterCone: 0.8660254
+    - Entity:
+        ID: 16505052115848402065
+        Components:
+          NameComponent:
+            Name: Point Light
+          TransformComponent:
+            Position: [0, 2.5, 0]
+            Rotation: [0, 0, 0]
+            Scale: [1, 1, 1]
+          LightComponent:
+            Type: Point
+            Color: [0, 0, 1]
             Intensity: 1
             Range: 10
             Direction: [-0.2, -1, -0.3]

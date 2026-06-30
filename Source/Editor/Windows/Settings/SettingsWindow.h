@@ -21,7 +21,9 @@ private:
 	void DrawSettings();
 
 	void DrawApplicationSettings(ApplicationSettings& applicationSettings);
+	void DrawAudioSettings(AudioSettings& audioSettings);
 	void DrawEditorSettings(EditorSettings& editorSettings);
+	void DrawSceneCameraSettings(SceneCameraSettings& sceneCameraSettings);
 	void DrawExportSettings(ExportSettings& exportSettings);
 	void DrawNavigationSettings(NavigationSettings& navigationSettings);
 	void DrawRenderingSettings(RenderingSettings& renderingSettings);
@@ -35,4 +37,7 @@ private:
 	std::vector<RenderingEngine> m_RenderingEngines;
 	std::vector<WindowMode> m_WindowModes;
 	std::vector<ExportImageFormat> m_ExportImageFormats;
+
+	std::vector<SampleRate> m_SampleRates;
+	std::vector<BufferSize> m_BufferSizes;
 };

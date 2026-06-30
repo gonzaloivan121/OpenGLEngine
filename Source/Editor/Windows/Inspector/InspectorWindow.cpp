@@ -20,6 +20,7 @@ namespace {
 
 		ComponentRegistry::Register<NameComponent>("Name");
 		ComponentRegistry::Register<TransformComponent>("Transform");
+		ComponentRegistry::Register<AudioComponent>("Audio");
 		ComponentRegistry::Register<LightComponent>("Light");
 		ComponentRegistry::Register<CameraComponent>("Camera");
 		ComponentRegistry::Register<MaterialComponent>("Material");
@@ -37,7 +38,18 @@ void InspectorWindow::OnAttach() {
 	Log::Trace("InspectorWindow::OnAttach - Attaching Inspector Window");
 	RegisterComponentsIfNeeded();
 
-	m_LightTypes = { LightType::Directional, LightType::Point, LightType::Spot };
+	m_LightTypes = {
+		LightType::Directional,
+		LightType::Point,
+		LightType::Spot
+	};
+
+	m_AudioChannels = {
+		AudioChannel::Ambience,
+		AudioChannel::Effects,
+		AudioChannel::Music,
+		AudioChannel::Voices
+	};
 }
 
 void InspectorWindow::OnDetach() {
@@ -102,6 +114,22 @@ void InspectorWindow::OnUIRender() {
 				UI::DragFloat("Near Clip", camera->NearClip, 0.001f, 100.0f, 0.001f);
 				UI::DragFloat("Far Clip", camera->FarClip, 0.1f, 5000.0f, 1.0f);
 				UI::Bool("Primary", camera->Primary);
+			}
+		}
+
+		if (auto* audioComponent = entity.GetComponent<AudioComponent>()) {
+			if (UI::CollapsingHeader("Audio")) {
+				UI::AudioSlot("Audio", audioComponent->AudioFilepath);
+
+				if (!audioComponent->AudioFilepath.empty()) {
+					UI::Separator();
+
+					UI::Dropdown("Channel", m_AudioChannels, audioComponent->Channel, Utilities::AudioChannelToString);
+
+					UI::Bool("Loop", audioComponent->Loop);
+					UI::DragFloat("Volume", audioComponent->Volume, 0.0f, 1.0f, 0.01f);
+					UI::DragFloat("Pitch", audioComponent->Pitch, 0.1f, 10.0f, 0.01f);
+				}
 			}
 		}
 

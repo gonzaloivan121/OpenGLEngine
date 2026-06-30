@@ -31,4 +31,5 @@ private:
 	UUID& m_SelectedEntityID;
 
 	std::vector<LightType> m_LightTypes;
+	std::vector<AudioChannel> m_AudioChannels;
 };

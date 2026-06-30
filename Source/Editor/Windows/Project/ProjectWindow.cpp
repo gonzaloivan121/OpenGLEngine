@@ -1,7 +1,7 @@
 #include "ProjectWindow.h"
 
 #include "Core/Log/Log.h"
-#include "Core/Settings/SettingsManager.h"
+#include "Core/Settings/Manager/SettingsManager.h"
 
 #include "Editor/Payload.h"
 

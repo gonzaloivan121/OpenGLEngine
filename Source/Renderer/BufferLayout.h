@@ -5,7 +5,6 @@
 
 #include "Core/Log/Log.h"
 
-// Enum para los tipos de datos
 enum class ShaderDataType {
     None = 0,
     Float,
@@ -21,7 +20,6 @@ enum class ShaderDataType {
     Bool
 };
 
-// Función auxiliar para obtener el tamaño de cada tipo
 static uint32_t ShaderDataTypeSize(ShaderDataType type) {
     switch (type) {
         case ShaderDataType::Float:    return 4;

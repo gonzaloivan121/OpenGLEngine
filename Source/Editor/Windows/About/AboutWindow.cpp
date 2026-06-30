@@ -2,7 +2,7 @@
 
 #include "Core/Log/Log.h"
 #include "Core/Application/Application.h"
-#include "Core/Settings/SettingsManager.h"
+#include "Core/Settings/Manager/SettingsManager.h"
 
 #include "Editor/UI.h"
 

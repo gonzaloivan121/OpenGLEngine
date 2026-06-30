@@ -121,6 +121,9 @@ public:
 	template<typename T, typename UIFunction>
 	static bool List(const char* label, std::vector<T>& vector, UIFunction uiFunction);
 
+	template <typename T>
+	static bool Dropdown(const char *label, const char *const options[], int optionCount, T *selected);
+
 	template<typename T>
 	static bool Dropdown(const char* label, const std::vector<T>& options, T& selected, std::string(*itemToString)(const T&));
 private:
@@ -200,6 +203,40 @@ inline bool UI::List(const char* label, std::vector<T>& vector, UIFunction uiFun
 		}
 
 		ImGui::PopID();
+	}
+
+	EndPropertyGrid();
+
+	return changed;
+}
+
+template<typename T>
+inline bool UI::Dropdown(const char* label, const char* const options[], int optionCount, T* selected) {
+	BeginPropertyGrid(label);
+
+	bool changed = false;
+
+	const char* previewValue = "None";
+	int selectedIndex = static_cast<int>(*selected);
+
+	if (selectedIndex >= 0 && selectedIndex < optionCount) {
+		previewValue = options[selectedIndex];
+	}
+
+	if (ImGui::BeginCombo(HiddenLabel(label), previewValue)) {
+		for (int i = 0; i < optionCount; i++) {
+			const bool isSelected = (static_cast<int>(*selected) == i);
+			if (ImGui::Selectable(options[i], isSelected)) {
+				*selected = static_cast<T>(i);
+				changed = true;
+			}
+
+			if (isSelected) {
+				ImGui::SetItemDefaultFocus();
+			}
+		}
+
+		ImGui::EndCombo();
 	}
 
 	EndPropertyGrid();

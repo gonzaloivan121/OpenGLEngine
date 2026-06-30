@@ -2,7 +2,7 @@
 
 #include "Core/Application/Application.h"
 #include "Core/Log/Log.h"
-#include "Core/Settings/SettingsManager.h"
+#include "Core/Settings/Manager/SettingsManager.h"
 #include "Core/Input/Input.h"
 
 #include "ECS/Serialization/Scene/SceneSerializer.h"
@@ -45,11 +45,14 @@ void EditorLayer::OnCreate() {
 	m_Windows.emplace_back(CreateScope<SettingsWindow>(SettingsManager::Get().Editor.Windows.ShowSettings));
 	m_Windows.emplace_back(CreateScope<StatisticsWindow>(SettingsManager::Get().Editor.Windows.ShowStatistics));
 
-	auto viewportWindow = CreateScope<ViewportWindow>(SettingsManager::Get().Editor.Windows.ShowViewport, m_Scene);
-	viewportWindow->SetSceneLoadCallback([this](const std::filesystem::path& filepath) {
+	auto sceneViewWindow = CreateScope<SceneViewWindow>(SettingsManager::Get().Editor.Windows.ShowViewport, m_Scene, m_SelectedEntityID);
+	sceneViewWindow->SetSceneLoadCallback([this](const std::filesystem::path& filepath) {
 		LoadScene(filepath);
 	});
-	m_Windows.emplace_back(std::move(viewportWindow));
+	m_Windows.emplace_back(std::move(sceneViewWindow));
+
+	auto gameWindow = CreateScope<GameViewWindow>(SettingsManager::Get().Editor.Windows.ShowGame, m_Scene);
+	m_Windows.emplace_back(std::move(gameWindow));
 }
 
 void EditorLayer::OnAttach() {
@@ -200,9 +203,10 @@ void EditorLayer::DrawMenuBar() {
 			ImGui::MenuItem("Inspector", "Ctrl+I", &windowsSettings.ShowInspector);
 			ImGui::MenuItem("Project",   "Ctrl+P", &windowsSettings.ShowProject);
 			ImGui::MenuItem("Scene",	 "Ctrl+;", &windowsSettings.ShowScene);
+			ImGui::MenuItem("Scene View", "Ctrl+V", &windowsSettings.ShowViewport);
+			ImGui::MenuItem("Game",      "Ctrl+G", &windowsSettings.ShowGame);
 			ImGui::MenuItem("Settings",  "Ctrl+,", &windowsSettings.ShowSettings);
 			ImGui::MenuItem("Statistics","Ctrl+T", &windowsSettings.ShowStatistics);
-			ImGui::MenuItem("Viewport",  "Ctrl+V", &windowsSettings.ShowViewport);
 
 			ImGui::EndMenu();
 		}
@@ -428,6 +432,10 @@ void EditorLayer::HandleKeyboardShortcuts() {
 
 		if (Input::IsKeyDown(KeyCode::V)) {
 			SettingsManager::Get().Editor.Windows.ShowViewport = !SettingsManager::Get().Editor.Windows.ShowViewport;
+		}
+
+		if (Input::IsKeyDown(KeyCode::G)) {
+			SettingsManager::Get().Editor.Windows.ShowGame = !SettingsManager::Get().Editor.Windows.ShowGame;
 		}
 	}
 

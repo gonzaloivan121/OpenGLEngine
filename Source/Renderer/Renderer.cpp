@@ -2,7 +2,7 @@
 
 #include "Core/Application/Application.h"
 #include "Core/Log/Log.h"
-#include "Core/Settings/SettingsManager.h"
+#include "Core/Settings/Manager/SettingsManager.h"
 #include "ECS/Components.h"
 
 #include <glm/gtc/type_ptr.hpp>
@@ -259,23 +259,56 @@ void Renderer::Begin() {
 }
 
 void Renderer::End() {
-	s_Framebuffer->Unbind();
+	if (s_Framebuffer) {
+		s_Framebuffer->Unbind();
+	}
 }
 
 void Renderer::Submit(Scene& scene) {
+	RenderRequest request;
+	request.TargetFramebuffer = s_Framebuffer;
+	request.Source = CameraSource::PrimaryOrFallback;
+
+	Submit(scene, request, nullptr);
+}
+
+void Renderer::Submit(Scene& scene, const RenderRequest& request, RenderResult* result) {
+	if (result) {
+		*result = RenderResult{};
+	}
+
+	if (!request.TargetFramebuffer) {
+		return;
+	}
+
+	s_Framebuffer = request.TargetFramebuffer;
+	const Ref<Framebuffer>& targetFramebuffer = request.TargetFramebuffer;
+
 	// Sync G-Buffer dimensions to the output framebuffer
-	const uint32_t fbWidth  = s_Framebuffer->GetWidth();
-	const uint32_t fbHeight = s_Framebuffer->GetHeight();
+	const uint32_t fbWidth  = targetFramebuffer->GetWidth();
+	const uint32_t fbHeight = targetFramebuffer->GetHeight();
 	if (s_GBuffer->GetWidth() != fbWidth || s_GBuffer->GetHeight() != fbHeight) {
 		s_GBuffer->Resize(fbWidth, fbHeight);
 	}
 
-	GeometryPass(scene);
-	BackgroundPass();
-	LightingPass(scene);
+	if (!GeometryPass(scene, request, targetFramebuffer, result)) {
+		ClearFramebuffer(targetFramebuffer, glm::vec4(0.0f, 0.0f, 0.0f, 1.0f));
+		if (result) {
+			result->Rendered = false;
+		}
+		return;
+	}
+
+	BackgroundPass(targetFramebuffer);
+	LightingPass(scene, targetFramebuffer);
+	targetFramebuffer->Unbind();
+
+	if (result) {
+		result->Rendered = true;
+	}
 }
 
-void Renderer::GeometryPass(Scene& scene) {
+bool Renderer::GeometryPass(Scene& scene, const RenderRequest& request, const Ref<Framebuffer>& outputFramebuffer, RenderResult* result) {
 	s_GBuffer->Bind();
 	RenderCommand::Clear();
 	RenderCommand::EnableDepthTest(true);
@@ -283,23 +316,44 @@ void Renderer::GeometryPass(Scene& scene) {
 
 	const float width  = static_cast<float>(s_GBuffer->GetWidth());
 	const float height = static_cast<float>(s_GBuffer->GetHeight());
+	const float aspectRatio = height > 0.0f ? width / height : 1.0f;
 	const glm::vec2 resolution(width, height);
 
-	// Find the primary camera entity
+	// Resolve the active camera matrices depending on the request source.
 	glm::mat4 view       = glm::mat4(1.0f);
-	glm::mat4 projection = glm::perspective(glm::radians(60.0f), width / height, 0.1f, 1000.0f);
+	glm::mat4 projection = glm::perspective(glm::radians(60.0f), aspectRatio, 0.1f, 1000.0f);
 	glm::vec3 camPos     = glm::vec3(0.0f);
+	bool hasPrimaryCamera = false;
 
-	for (const auto& id : scene.GetEntityIDs()) {
-		Entity entity = scene.GetEntity(id);
-		const auto* cc = entity.GetComponent<CameraComponent>();
-		if (!cc || !cc->Primary) continue;
-		const auto* tc = entity.GetComponent<TransformComponent>();
-		if (!tc) continue;
-		camPos     = tc->Position;
-		view       = glm::inverse(tc->GetTransform());
-		projection = cc->GetProjection(width / height);
-		break;
+	if (request.Source == CameraSource::Override) {
+		view = request.OverrideCamera.View;
+		projection = request.OverrideCamera.Projection;
+		camPos = request.OverrideCamera.Position;
+	} else {
+		for (const auto& id : scene.GetEntityIDs()) {
+			Entity entity = scene.GetEntity(id);
+			const auto* cc = entity.GetComponent<CameraComponent>();
+			if (!cc || !cc->Primary) continue;
+			const auto* tc = entity.GetComponent<TransformComponent>();
+			if (!tc) continue;
+			camPos = tc->Position;
+			view = glm::inverse(tc->GetTransform());
+			projection = cc->GetProjection(aspectRatio);
+			hasPrimaryCamera = true;
+			break;
+		}
+
+		if (request.Source == CameraSource::PrimaryOnly && !hasPrimaryCamera) {
+			s_GBuffer->Unbind();
+			if (result) {
+				result->HasActivePrimaryCamera = false;
+			}
+			return false;
+		}
+
+		if (result) {
+			result->HasActivePrimaryCamera = hasPrimaryCamera;
+		}
 	}
 
 	s_SceneData.View           = view;
@@ -362,10 +416,12 @@ void Renderer::GeometryPass(Scene& scene) {
 	}
 
 	s_GBuffer->Unbind();
+
+	return true;
 }
 
-void Renderer::BackgroundPass() {
-	s_Framebuffer->Bind();
+void Renderer::BackgroundPass(const Ref<Framebuffer>& outputFramebuffer) {
+	outputFramebuffer->Bind();
 	RenderCommand::Clear();
 
 	if (!m_Shader || !m_QuadMesh) {
@@ -376,8 +432,8 @@ void Renderer::BackgroundPass() {
 
 	m_Shader->Bind();
 	m_Shader->SetUniform("u_Resolution", glm::vec2(
-		static_cast<float>(s_Framebuffer->GetWidth()),
-		static_cast<float>(s_Framebuffer->GetHeight())
+		static_cast<float>(outputFramebuffer->GetWidth()),
+		static_cast<float>(outputFramebuffer->GetHeight())
 	));
 
 	if (const auto& vertexArray = m_QuadMesh->GetVertexArray()) {
@@ -387,7 +443,7 @@ void Renderer::BackgroundPass() {
 	RenderCommand::EnableDepthTest(true);
 }
 
-void Renderer::LightingPass(Scene& scene) {
+void Renderer::LightingPass(Scene& scene, const Ref<Framebuffer>& outputFramebuffer) {
 	if (!m_LightingShader || !m_QuadMesh) {
 		return;
 	}
@@ -405,8 +461,8 @@ void Renderer::LightingPass(Scene& scene) {
 	m_LightingShader->SetUniform("u_gMaterial", 3);
 	m_LightingShader->SetUniform("u_CameraPosition", s_SceneData.CameraPosition);
 	m_LightingShader->SetUniform("u_Resolution", glm::vec2(
-		static_cast<float>(s_Framebuffer->GetWidth()),
-		static_cast<float>(s_Framebuffer->GetHeight())
+		static_cast<float>(outputFramebuffer->GetWidth()),
+		static_cast<float>(outputFramebuffer->GetHeight())
 	));
 
 	// Collect lights from scene entities
@@ -496,6 +552,17 @@ void Renderer::LightingPass(Scene& scene) {
 	}
 
 	RenderCommand::EnableDepthTest(true);
+}
+
+void Renderer::ClearFramebuffer(const Ref<Framebuffer>& framebuffer, const glm::vec4& color) {
+	if (!framebuffer) {
+		return;
+	}
+
+	framebuffer->Bind();
+	RenderCommand::SetClearColor(color);
+	RenderCommand::Clear();
+	framebuffer->Unbind();
 }
 
 Ref<Shader> Renderer::GetOrLoadShader(const std::filesystem::path& path) {

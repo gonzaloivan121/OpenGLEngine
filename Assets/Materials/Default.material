@@ -1,8 +1,8 @@
 Material:
-  ShaderFilepath: Assets\Shaders\Cell.shader
-  Albedo: [0.99999905, 0, 1]
-  Metallic: 0.5
-  Roughness: 0.5
+  ShaderFilepath: Assets\Shaders\Default.shader
+  Albedo: [1, 1, 1]
+  Metallic: 1
+  Roughness: 0
   AmbientOcclusion: 1
   HeightScale: 0.1
   Emission:

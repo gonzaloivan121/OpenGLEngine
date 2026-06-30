@@ -1,8 +1,9 @@
 #include "SettingsWindow.h"
 
 #include "Core/Application/Application.h"
+#include "Core/Audio/AudioEngine.h"
 #include "Core/Log/Log.h"
-#include "Core/Settings/SettingsManager.h"
+#include "Core/Settings/Manager/SettingsManager.h"
 
 #include "Utilities/Utilities.h"
 
@@ -20,6 +21,7 @@ void SettingsWindow::OnAttach() {
 
 	m_Categories = {
 		Category::Application,
+		Category::Audio,
 		Category::Editor,
 		Category::Export,
 		Category::Graphics,
@@ -95,6 +97,27 @@ void SettingsWindow::OnAttach() {
 		ExportImageFormat::JPEG,
 		ExportImageFormat::BMP
 	};
+
+	m_SampleRates = {
+		SampleRate::SR_44100,
+		SampleRate::SR_48000,
+		SampleRate::SR_88200,
+		SampleRate::SR_96000,
+		SampleRate::SR_176400,
+		SampleRate::SR_192000};
+
+	m_BufferSizes = {
+		BufferSize::BS_16,
+		BufferSize::BS_32,
+		BufferSize::BS_48,
+		BufferSize::BS_64,
+		BufferSize::BS_96,
+		BufferSize::BS_128,
+		BufferSize::BS_160,
+		BufferSize::BS_192,
+		BufferSize::BS_256,
+		BufferSize::BS_512,
+		BufferSize::BS_1024};
 }
 
 void SettingsWindow::OnDetach() {
@@ -178,6 +201,7 @@ void SettingsWindow::DrawSettings() {
 
 	switch (m_CurrentCategory) {
 		case Category::Application: DrawApplicationSettings(settings.Application);	break;
+		case Category::Audio:		DrawAudioSettings(settings.Audio);				break;
 		case Category::Editor:		DrawEditorSettings(settings.Editor);			break;
 		case Category::Input:		DrawNavigationSettings(settings.Navigation);	break;
 		case Category::Rendering:	DrawRenderingSettings(settings.Rendering);		break;
@@ -219,6 +243,90 @@ void SettingsWindow::DrawApplicationSettings(ApplicationSettings& applicationSet
 	UI::Separator();
 }
 
+void SettingsWindow::DrawAudioSettings(AudioSettings& audioSettings) {
+	if (UI::CollapsingHeader("Device")) {
+		auto& deviceSettings = audioSettings.Device;
+
+		{
+			const auto& inputDevices = AudioEngine::GetInputDevices();
+			std::vector<const char*> deviceNames;
+			int currentDeviceIndex = -1;
+	
+			for (int i = 0; i < inputDevices.size(); ++i) {
+				deviceNames.push_back(inputDevices[i].Name.c_str());
+				if (inputDevices[i].ID == deviceSettings.InputDeviceID) {
+					currentDeviceIndex = i;
+				}
+			}
+	
+			int selection = currentDeviceIndex;
+			if (UI::Dropdown("Input Device", deviceNames.data(), (int)deviceNames.size(), &selection)) {
+				// If the user changes the selection, update the ID in the settings
+				if (selection >= 0) {
+					deviceSettings.InputDeviceID = inputDevices[selection].ID;
+					//AudioEngine::Restart();
+				}
+			}
+			UI::Tooltip("Select the input audio device to be used for capturing audio input.");
+		}
+
+		{
+			const auto& outputDevices = AudioEngine::GetOutputDevices();
+			std::vector<const char*> deviceNames;
+			int currentDeviceIndex = -1;
+
+			for (int i = 0; i < outputDevices.size(); ++i) {
+				deviceNames.push_back(outputDevices[i].Name.c_str());
+				if (outputDevices[i].ID == deviceSettings.OutputDeviceID) {
+					currentDeviceIndex = i;
+				}
+			}
+
+			int selection = currentDeviceIndex;
+			if (UI::Dropdown("Output Device", deviceNames.data(), (int)deviceNames.size(), &selection)) {
+				// If the user changes the selection, update the ID in the settings
+				if (selection >= 0) {
+					deviceSettings.OutputDeviceID = outputDevices[selection].ID;
+					//AudioEngine::Restart();
+				}
+			}
+		}
+
+		UI::Dropdown("Sample Rate", m_SampleRates, deviceSettings.SampleRate, Utilities::SampleRateToString);
+		UI::Tooltip("Select the sample rate for audio processing, which determines the number of audio samples captured or played back per second.");
+
+		UI::Dropdown("Buffer Size", m_BufferSizes, deviceSettings.BufferSize, Utilities::BufferSizeToString);
+		UI::Tooltip("Select the buffer size for audio processing, which determines the number of audio samples processed in each audio callback.");
+
+		UI::Bool("Pass Through", deviceSettings.PassThrough);
+		UI::Tooltip("When enabled, audio input will be passed through to the output, allowing users to hear their own voice or other input audio in real-time.");
+	}
+
+	if (UI::CollapsingHeader("Volume")) {
+		auto& volumeSettings = audioSettings.Volume;
+
+		UI::SliderFloat("Master", volumeSettings.Master, 0.0f, 1.0f);
+		UI::Tooltip("The master volume level for the application.");
+
+		UI::SliderFloat("Ambience", volumeSettings.Ambience, 0.0f, 1.0f);
+		UI::Tooltip("The volume level for ambient sounds.");
+
+		UI::SliderFloat("Effects", volumeSettings.Effects, 0.0f, 1.0f);
+		UI::Tooltip("The volume level for sound effects.");
+
+		UI::SliderFloat("Music", volumeSettings.Music, 0.0f, 1.0f);
+		UI::Tooltip("The volume level for music playback.");
+
+		UI::SliderFloat("Voices", volumeSettings.Voices, 0.0f, 1.0f);
+		UI::Tooltip("The volume level for voice audio.");
+
+		UI::Bool("Mute All", volumeSettings.MuteAll);
+		UI::Tooltip("When enabled, all audio output will be muted.");
+
+		UI::Separator();
+	}
+}
+
 void SettingsWindow::DrawEditorSettings(EditorSettings& editorSettings) {
 	if (UI::CollapsingHeader("Appearance")) {
 		auto& appearanceSettings = editorSettings.Appearance;
@@ -253,10 +361,60 @@ void SettingsWindow::DrawEditorSettings(EditorSettings& editorSettings) {
 			
 			UI::Separator();
 		}
+
+		if (UI::CollapsingHeader("Scene Camera")) {
+			DrawSceneCameraSettings(editorSettings.SceneCamera);
+		}
 	}
 
 	UI::DragInt("Auto Save Interval", editorSettings.AutoSaveInterval, 0, 86400);
 	UI::Tooltip("Auto Save is not supported yet.");
+
+	UI::Separator();
+}
+
+void SettingsWindow::DrawSceneCameraSettings(SceneCameraSettings& sceneCameraSettings) {
+	UI::Vec3("Position", sceneCameraSettings.Position);
+	UI::Tooltip("The live scene camera position used by the Scene viewport.");
+
+	UI::DragFloat("Yaw", sceneCameraSettings.Yaw, -360.0f, 360.0f, 0.1f);
+	UI::Tooltip("The horizontal rotation angle in degrees.");
+
+	UI::DragFloat("Pitch", sceneCameraSettings.Pitch, -89.0f, 89.0f, 0.1f);
+	UI::Tooltip("The vertical rotation angle in degrees.");
+
+	UI::DragFloat("FOV", sceneCameraSettings.FOV, 1.0f, 120.0f, 0.1f);
+	UI::Tooltip("Field of view in degrees.");
+
+	UI::DragFloat("Near Clip", sceneCameraSettings.NearClip, 0.001f, 10.0f, 0.001f);
+	UI::Tooltip("The near clipping plane.");
+
+	UI::DragFloat("Far Clip", sceneCameraSettings.FarClip, 1.0f, 100000.0f, 1.0f);
+	UI::Tooltip("The far clipping plane.");
+
+	UI::Separator();
+
+	UI::DragFloat("Movement Speed", sceneCameraSettings.MovementSpeed, 0.1f, 50.0f);
+	UI::Tooltip("Pan speed when using WASD in the Scene viewport.");
+
+	UI::DragFloat("Fast Movement Speed", sceneCameraSettings.FastMovementSpeed, 0.1f, 50.0f);
+	UI::Tooltip("Speed multiplier for fast panning/movement (Shift key). Higher values move the view faster.");
+
+	UI::DragFloat("Rotation Speed", sceneCameraSettings.RotationSpeed, 0.1f, 50.0f);
+	UI::Tooltip("Rotation speed when using mouse look in the Scene viewport.");
+
+	UI::DragFloat("Zoom Speed", sceneCameraSettings.ZoomSpeed, 0.1f, 50.0f);
+	UI::Tooltip("Zoom speed when using the scroll wheel.");
+
+	UI::Separator();
+
+	UI::DragFloat("Smoothing", sceneCameraSettings.Smoothing, 0.1f, 50.0f);
+	UI::Tooltip("Interpolation smoothing factor.");
+
+	UI::Separator();
+
+	UI::Bool("Invert Zoom", sceneCameraSettings.InvertZoom);
+	UI::Tooltip("Reverses the scroll wheel zoom direction.");
 
 	UI::Separator();
 }

@@ -2,7 +2,7 @@
 
 #include "Core/Log/Log.h"
 #include "Core/Application/Application.h"
-#include "Core/Settings/SettingsManager.h"
+#include "Core/Settings/Manager/SettingsManager.h"
 
 #include "Editor/Payload.h"
 #include "Editor/Theme/ThemeManager.h"
@@ -10,6 +10,8 @@
 #include "imgui.h"
 #include "backends/imgui_impl_glfw.h"
 #include "backends/imgui_impl_opengl3.h"
+
+#include "ImGuizmo.h"
 
 #include <glm/gtc/type_ptr.hpp>
 
@@ -71,13 +73,7 @@ void UI::Shutdown() {
 }
 
 void UI::Begin() {
-	ImGui_ImplOpenGL3_NewFrame();
-	ImGui_ImplGlfw_NewFrame();
-	ImGui::NewFrame();
-
 	NewFrame();
-
-	ImGui::DockSpaceOverViewport(0, ImGui::GetMainViewport());
 }
 
 void UI::End() {
@@ -187,6 +183,12 @@ void UI::SetupStyle() {
 }
 
 void UI::NewFrame() {
+	ImGui_ImplOpenGL3_NewFrame();
+	ImGui_ImplGlfw_NewFrame();
+	ImGui::NewFrame();
+	ImGuizmo::BeginFrame();
+	ImGui::DockSpaceOverViewport(0, ImGui::GetMainViewport());
+
 	s_LabelCache.clear();
 }
 

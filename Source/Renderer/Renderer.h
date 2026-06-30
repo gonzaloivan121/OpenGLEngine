@@ -13,6 +13,30 @@
 
 class Renderer {
 public:
+	struct CameraData {
+		glm::mat4 View = glm::mat4(1.0f);
+		glm::mat4 Projection = glm::mat4(1.0f);
+		glm::mat4 ViewProjection = glm::mat4(1.0f);
+		glm::vec3 Position = glm::vec3(0.0f);
+	};
+
+	enum class CameraSource {
+		PrimaryOrFallback,
+		PrimaryOnly,
+		Override
+	};
+
+	struct RenderRequest {
+		Ref<Framebuffer> TargetFramebuffer = nullptr;
+		CameraSource Source = CameraSource::PrimaryOrFallback;
+		CameraData OverrideCamera;
+	};
+
+	struct RenderResult {
+		bool Rendered = false;
+		bool HasActivePrimaryCamera = true;
+	};
+
 	struct SceneData {
 		glm::mat4 View = glm::mat4(1.0f);
 		glm::mat4 Projection = glm::mat4(1.0f);
@@ -27,6 +51,8 @@ public:
 	static void End();
 
 	static void Submit(Scene& scene);
+	static void Submit(Scene& scene, const RenderRequest& request, RenderResult* result = nullptr);
+	static void ClearFramebuffer(const Ref<Framebuffer>& framebuffer, const glm::vec4& color);
 	static void ExportFrame(const std::filesystem::path& filepath);
 
 	static Ref<Framebuffer> GetFramebuffer() { return s_Framebuffer; }
@@ -36,9 +62,9 @@ private:
 	static void InitFullscreenQuad();
 	static void InitShaders();
 
-	static void GeometryPass(Scene& scene);
-	static void BackgroundPass();
-	static void LightingPass(Scene& scene);
+	static bool GeometryPass(Scene& scene, const RenderRequest& request, const Ref<Framebuffer>& outputFramebuffer, RenderResult* result);
+	static void BackgroundPass(const Ref<Framebuffer>& outputFramebuffer);
+	static void LightingPass(Scene& scene, const Ref<Framebuffer>& outputFramebuffer);
 
 	static Ref<Shader> GetOrLoadShader(const std::filesystem::path& path);
 private:
