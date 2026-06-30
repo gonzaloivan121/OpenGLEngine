@@ -6,9 +6,9 @@
 
 #include <string>
 
-class GameViewWindow : public Window {
+class GameWindow : public Window {
 public:
-	GameViewWindow(bool& isOpen, Scene& scene);
+	GameWindow(bool& isOpen, Scene& scene);
 
 	virtual void OnCreate() override;
 	virtual void OnAttach() override;
@@ -26,10 +26,10 @@ private:
 	Scene& m_Scene;
 	Ref<Framebuffer> m_Framebuffer = nullptr;
 
-	bool m_ViewportHovered = false;
-	bool m_ViewportFocused = false;
+	bool m_WindowHovered = false;
+	bool m_WindowFocused = false;
 	bool m_HasActivePrimaryCamera = true;
-	uint32_t m_ViewportWidth = 0;
-	uint32_t m_ViewportHeight = 0;
-	std::string m_WindowTitle = "Game";
+
+	uint32_t m_WindowWidth = 0;
+	uint32_t m_WindowHeight = 0;
 };

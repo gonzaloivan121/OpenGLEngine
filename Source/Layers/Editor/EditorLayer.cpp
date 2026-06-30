@@ -24,6 +24,8 @@ void EditorLayer::OnCreate() {
 	Log::Trace("EditorLayer::OnCreate - Creating Editor Layer");
 
 	m_Windows.emplace_back(CreateScope<AboutWindow>(SettingsManager::Get().Editor.Windows.ShowAbout));
+	m_Windows.emplace_back(CreateScope<GameWindow>(SettingsManager::Get().Editor.Windows.ShowGame, m_Scene));
+	m_Windows.emplace_back(CreateScope<HierarchyWindow>(SettingsManager::Get().Editor.Windows.ShowScene, m_Scene, m_SelectedEntityID));
 	m_Windows.emplace_back(CreateScope<InspectorWindow>(SettingsManager::Get().Editor.Windows.ShowInspector, m_Scene, m_SelectedEntityID));
 
 	auto projectWindow = CreateScope<ProjectWindow>(SettingsManager::Get().Editor.Windows.ShowProject);
@@ -41,18 +43,14 @@ void EditorLayer::OnCreate() {
 	});
 	m_Windows.emplace_back(std::move(projectWindow));
 
-	m_Windows.emplace_back(CreateScope<SceneWindow>(SettingsManager::Get().Editor.Windows.ShowScene, m_Scene, m_SelectedEntityID));
-	m_Windows.emplace_back(CreateScope<SettingsWindow>(SettingsManager::Get().Editor.Windows.ShowSettings));
-	m_Windows.emplace_back(CreateScope<StatisticsWindow>(SettingsManager::Get().Editor.Windows.ShowStatistics));
-
-	auto sceneViewWindow = CreateScope<SceneViewWindow>(SettingsManager::Get().Editor.Windows.ShowViewport, m_Scene, m_SelectedEntityID);
-	sceneViewWindow->SetSceneLoadCallback([this](const std::filesystem::path& filepath) {
+	auto sceneWindow = CreateScope<SceneWindow>(SettingsManager::Get().Editor.Windows.ShowScene, m_Scene, m_SelectedEntityID);
+	sceneWindow->SetSceneLoadCallback([this](const std::filesystem::path& filepath) {
 		LoadScene(filepath);
 	});
-	m_Windows.emplace_back(std::move(sceneViewWindow));
+	m_Windows.emplace_back(std::move(sceneWindow));
 
-	auto gameWindow = CreateScope<GameViewWindow>(SettingsManager::Get().Editor.Windows.ShowGame, m_Scene);
-	m_Windows.emplace_back(std::move(gameWindow));
+	m_Windows.emplace_back(CreateScope<SettingsWindow>(SettingsManager::Get().Editor.Windows.ShowSettings));
+	m_Windows.emplace_back(CreateScope<StatisticsWindow>(SettingsManager::Get().Editor.Windows.ShowStatistics));
 }
 
 void EditorLayer::OnAttach() {
@@ -199,14 +197,14 @@ void EditorLayer::DrawMenuBar() {
 		if (ImGui::BeginMenu("View")) {
 			auto& windowsSettings = SettingsManager::Get().Editor.Windows;
 
-			ImGui::MenuItem("About",     "F1",     &windowsSettings.ShowAbout);
-			ImGui::MenuItem("Inspector", "Ctrl+I", &windowsSettings.ShowInspector);
-			ImGui::MenuItem("Project",   "Ctrl+P", &windowsSettings.ShowProject);
-			ImGui::MenuItem("Scene",	 "Ctrl+;", &windowsSettings.ShowScene);
-			ImGui::MenuItem("Scene View", "Ctrl+V", &windowsSettings.ShowViewport);
-			ImGui::MenuItem("Game",      "Ctrl+G", &windowsSettings.ShowGame);
-			ImGui::MenuItem("Settings",  "Ctrl+,", &windowsSettings.ShowSettings);
-			ImGui::MenuItem("Statistics","Ctrl+T", &windowsSettings.ShowStatistics);
+			ImGui::MenuItem("About",     	"F1",     &windowsSettings.ShowAbout);
+			ImGui::MenuItem("Game",      	"Ctrl+G", &windowsSettings.ShowGame);
+			ImGui::MenuItem("Hierarchy",    "Ctrl+H", &windowsSettings.ShowHierarchy);
+			ImGui::MenuItem("Inspector", 	"Ctrl+I", &windowsSettings.ShowInspector);
+			ImGui::MenuItem("Project",   	"Ctrl+P", &windowsSettings.ShowProject);
+			ImGui::MenuItem("Scene",	 	"Ctrl+;", &windowsSettings.ShowScene);
+			ImGui::MenuItem("Settings",  	"Ctrl+,", &windowsSettings.ShowSettings);
+			ImGui::MenuItem("Statistics",	"Ctrl+T", &windowsSettings.ShowStatistics);
 
 			ImGui::EndMenu();
 		}
@@ -214,7 +212,7 @@ void EditorLayer::DrawMenuBar() {
 		// Help Menu
 		if (ImGui::BeginMenu("Help")) {
 			if (ImGui::MenuItem("Documentation")) {
-				UI::OpenLink("https://github.com/gonzaloivan121");
+				UI::OpenLink("https://github.com/gonzaloivan121/OpenGLEngine/wiki");
 			}
 
 			UI::Tooltip("Open the app documentation.");
@@ -401,6 +399,10 @@ void EditorLayer::CheckOrCreateFolder(const std::filesystem::path& filepath) {
 }
 
 void EditorLayer::HandleKeyboardShortcuts() {
+	if (Input::IsKeyDown(KeyCode::F1)) {
+		SettingsManager::Get().Editor.Windows.ShowAbout = !SettingsManager::Get().Editor.Windows.ShowAbout;
+	}
+
 	if (Input::IsKeyPressed(KeyCode::LeftControl) || Input::IsKeyPressed(KeyCode::RightControl)) {
 		if (Input::IsKeyDown(KeyCode::S)) {
 			SaveScene(m_CurrentSceneFilepath);
@@ -431,16 +433,12 @@ void EditorLayer::HandleKeyboardShortcuts() {
 		}
 
 		if (Input::IsKeyDown(KeyCode::V)) {
-			SettingsManager::Get().Editor.Windows.ShowViewport = !SettingsManager::Get().Editor.Windows.ShowViewport;
+			SettingsManager::Get().Editor.Windows.ShowGame = !SettingsManager::Get().Editor.Windows.ShowGame;
 		}
 
 		if (Input::IsKeyDown(KeyCode::G)) {
 			SettingsManager::Get().Editor.Windows.ShowGame = !SettingsManager::Get().Editor.Windows.ShowGame;
 		}
-	}
-
-	if (Input::IsKeyDown(KeyCode::F1)) {
-		SettingsManager::Get().Editor.Windows.ShowAbout = !SettingsManager::Get().Editor.Windows.ShowAbout;
 	}
 }
 

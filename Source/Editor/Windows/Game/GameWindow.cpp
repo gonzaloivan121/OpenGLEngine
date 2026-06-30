@@ -1,4 +1,4 @@
-#include "GameViewWindow.h"
+#include "GameWindow.h"
 
 #include "Core/Settings/Manager/SettingsManager.h"
 #include "Core/Log/Log.h"
@@ -9,24 +9,24 @@
 
 #include <algorithm>
 
-GameViewWindow::GameViewWindow(bool& isOpen, Scene& scene)
+GameWindow::GameWindow(bool& isOpen, Scene& scene)
 	: Window(isOpen), m_Scene(scene) {}
 
-void GameViewWindow::OnCreate() {
-	Log::Trace("GameViewWindow::OnCreate - Creating Game Window");
+void GameWindow::OnCreate() {
+	Log::Trace("GameWindow::OnCreate - Creating Game Window");
 }
 
-void GameViewWindow::OnAttach() {
-	Log::Trace("GameViewWindow::OnAttach - Attaching Game Window");
+void GameWindow::OnAttach() {
+	Log::Trace("GameWindow::OnAttach - Attaching Game Window");
 	EnsureFramebuffer();
 }
 
-void GameViewWindow::OnDetach() {
-	Log::Trace("GameViewWindow::OnDetach - Detaching Game Window");
+void GameWindow::OnDetach() {
+	Log::Trace("GameWindow::OnDetach - Detaching Game Window");
 	m_Framebuffer.reset();
 }
 
-void GameViewWindow::OnUpdate(Timestep ts) {
+void GameWindow::OnUpdate(Timestep ts) {
 	if (!m_IsOpen || !m_Framebuffer) {
 		return;
 	}
@@ -43,13 +43,13 @@ void GameViewWindow::OnUpdate(Timestep ts) {
 	m_HasActivePrimaryCamera = result.HasActivePrimaryCamera;
 }
 
-void GameViewWindow::OnUIRender() {
+void GameWindow::OnUIRender() {
 	if (!m_IsOpen) {
 		return;
 	}
 
 	ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0, 0));
-	if (ImGui::Begin(m_WindowTitle.c_str(), &m_IsOpen)) {
+	if (ImGui::Begin("Game", &m_IsOpen)) {
 		Update();
 		Draw();
 	}
@@ -58,29 +58,29 @@ void GameViewWindow::OnUIRender() {
 	ImGui::PopStyleVar();
 }
 
-void GameViewWindow::Update() {
-	const ImVec2 viewportSize = ImGui::GetContentRegionAvail();
+void GameWindow::Update() {
+	const ImVec2 windowSize = ImGui::GetContentRegionAvail();
 	const auto& settings = SettingsManager::Get().Rendering.Resolution;
 
-	m_ViewportWidth = static_cast<uint32_t>(std::max(0.0f, viewportSize.x * settings.Scale));
-	m_ViewportHeight = static_cast<uint32_t>(std::max(0.0f, viewportSize.y * settings.Scale));
+	m_WindowWidth = static_cast<uint32_t>(std::max(0.0f, windowSize.x * settings.Scale));
+	m_WindowHeight = static_cast<uint32_t>(std::max(0.0f, windowSize.y * settings.Scale));
 
 	EnsureFramebuffer();
 	Resize();
 
-	m_ViewportHovered = ImGui::IsWindowHovered();
-	m_ViewportFocused = ImGui::IsWindowFocused(ImGuiFocusedFlags_RootAndChildWindows);
+	m_WindowHovered = ImGui::IsWindowHovered();
+	m_WindowFocused = ImGui::IsWindowFocused(ImGuiFocusedFlags_RootAndChildWindows);
 }
 
-void GameViewWindow::Resize() {
-	if (m_Framebuffer && m_ViewportWidth > 0 && m_ViewportHeight > 0) {
-		if (m_Framebuffer->GetWidth() != m_ViewportWidth || m_Framebuffer->GetHeight() != m_ViewportHeight) {
-			m_Framebuffer->Resize(m_ViewportWidth, m_ViewportHeight);
+void GameWindow::Resize() {
+	if (m_Framebuffer && m_WindowWidth > 0 && m_WindowHeight > 0) {
+		if (m_Framebuffer->GetWidth() != m_WindowWidth || m_Framebuffer->GetHeight() != m_WindowHeight) {
+			m_Framebuffer->Resize(m_WindowWidth, m_WindowHeight);
 		}
 	}
 }
 
-void GameViewWindow::Draw() {
+void GameWindow::Draw() {
 	if (!m_Framebuffer) {
 		return;
 	}
@@ -111,15 +111,15 @@ void GameViewWindow::Draw() {
 	}
 }
 
-void GameViewWindow::EnsureFramebuffer() {
+void GameWindow::EnsureFramebuffer() {
 	if (!m_Framebuffer) {
-		const uint32_t width = std::max(1u, m_ViewportWidth);
-		const uint32_t height = std::max(1u, m_ViewportHeight);
+		const uint32_t width = std::max(1u, m_WindowWidth);
+		const uint32_t height = std::max(1u, m_WindowHeight);
 		m_Framebuffer = CreateFramebuffer(width, height);
 	}
 }
 
-Ref<Framebuffer> GameViewWindow::CreateFramebuffer(uint32_t width, uint32_t height) {
+Ref<Framebuffer> GameWindow::CreateFramebuffer(uint32_t width, uint32_t height) {
 	TextureSpecification colorSpec;
 	colorSpec.Width = width;
 	colorSpec.Height = height;

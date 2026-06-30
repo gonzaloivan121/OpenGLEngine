@@ -9,7 +9,7 @@ class SceneCamera {
 public:
 	SceneCamera(SceneCameraSettings& settings) : m_Settings(settings) {}
 
-	void Update(Timestep ts, bool viewportHovered, bool viewportFocused);
+	void Update(Timestep ts, bool windowHovered, bool windowFocused);
 	glm::mat4 GetView() const;
 	glm::mat4 GetProjection(float aspectRatio) const;
 	glm::mat4 GetViewProjection(float aspectRatio) const;

@@ -51,13 +51,13 @@ Settings:
       InvertZoom: false
     Windows:
       ShowAbout: false
+      ShowGame: true
+      ShowHierarchy: true
       ShowInspector: true
       ShowProject: true
       ShowScene: true
       ShowSettings: false
       ShowStatistics: false
-      ShowViewport: true
-      ShowGame: true
     AutoSaveInterval: 10
   Rendering:
     Engine: OpenGL

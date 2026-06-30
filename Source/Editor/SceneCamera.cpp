@@ -8,9 +8,9 @@
 
 #include <glm/gtc/matrix_transform.hpp>
 
-void SceneCamera::Update(Timestep ts, bool viewportHovered, bool viewportFocused) {
+void SceneCamera::Update(Timestep ts, bool windowHovered, bool windowFocused) {
 	const float deltaTime = ts.GetSeconds();
-	const bool canNavigate = viewportHovered && viewportFocused && Input::IsMouseButtonPressed(MouseCode::ButtonRight);
+	const bool canNavigate = windowHovered && windowFocused && Input::IsMouseButtonPressed(MouseCode::ButtonRight);
 	const bool navigationStartedThisFrame = canNavigate && !m_WasNavigatingLastFrame;
 
 	const float yawRadians = glm::radians(m_Settings.Yaw);
@@ -53,13 +53,16 @@ void SceneCamera::Update(Timestep ts, bool viewportHovered, bool viewportFocused
 		Cursor::Unlock();
 	}
 
-	if (viewportHovered) {
+	if (windowHovered) {
 		const auto& scrollOffset = Input::GetScrollOffset();
+		
 		if (scrollOffset.y != 0.0f) {
 			float zoomAmount = m_Settings.ZoomSpeed * static_cast<float>(scrollOffset.y);
+
 			if (m_Settings.InvertZoom) {
 				zoomAmount *= -1.0f;
 			}
+
 			m_Settings.Position += forward * zoomAmount;
 		}
 	}

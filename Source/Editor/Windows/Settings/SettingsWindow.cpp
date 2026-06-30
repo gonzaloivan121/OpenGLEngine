@@ -375,7 +375,7 @@ void SettingsWindow::DrawEditorSettings(EditorSettings& editorSettings) {
 
 void SettingsWindow::DrawSceneCameraSettings(SceneCameraSettings& sceneCameraSettings) {
 	UI::Vec3("Position", sceneCameraSettings.Position);
-	UI::Tooltip("The live scene camera position used by the Scene viewport.");
+	UI::Tooltip("The live scene camera position used by the Scene window.");
 
 	UI::DragFloat("Yaw", sceneCameraSettings.Yaw, -360.0f, 360.0f, 0.1f);
 	UI::Tooltip("The horizontal rotation angle in degrees.");
@@ -395,13 +395,13 @@ void SettingsWindow::DrawSceneCameraSettings(SceneCameraSettings& sceneCameraSet
 	UI::Separator();
 
 	UI::DragFloat("Movement Speed", sceneCameraSettings.MovementSpeed, 0.1f, 50.0f);
-	UI::Tooltip("Pan speed when using WASD in the Scene viewport.");
+	UI::Tooltip("Pan speed when using WASD in the Scene window.");
 
 	UI::DragFloat("Fast Movement Speed", sceneCameraSettings.FastMovementSpeed, 0.1f, 50.0f);
 	UI::Tooltip("Speed multiplier for fast panning/movement (Shift key). Higher values move the view faster.");
 
 	UI::DragFloat("Rotation Speed", sceneCameraSettings.RotationSpeed, 0.1f, 50.0f);
-	UI::Tooltip("Rotation speed when using mouse look in the Scene viewport.");
+	UI::Tooltip("Rotation speed when using mouse look in the Scene window.");
 
 	UI::DragFloat("Zoom Speed", sceneCameraSettings.ZoomSpeed, 0.1f, 50.0f);
 	UI::Tooltip("Zoom speed when using the scroll wheel.");
@@ -439,7 +439,7 @@ void SettingsWindow::DrawExportSettings(ExportSettings& exportSettings) {
 
 void SettingsWindow::DrawNavigationSettings(NavigationSettings& navigationSettings) {
 	UI::DragFloat("Movement Speed", navigationSettings.MovementSpeed, 0.1f, 50.0f);
-	UI::Tooltip("Pan speed when using WASD or dragging the viewport.");
+	UI::Tooltip("Pan speed when using WASD or dragging the window.");
 
 	UI::DragFloat("Fast Movement Speed", navigationSettings.FastMovementSpeed, 0.1f, 50.0f);
 	UI::Tooltip("Speed multiplier for fast panning/movement (Shift key). Higher values move the view faster.");

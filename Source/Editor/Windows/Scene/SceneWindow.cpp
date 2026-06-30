@@ -1,35 +1,87 @@
 #include "SceneWindow.h"
 
+#include "Core/Settings/Manager/SettingsManager.h"
 #include "Core/Log/Log.h"
-#include "Core/Input/Input.h"
 
 #include "ECS/Components.h"
 
+#include "Editor/Payload.h"
 #include "Editor/UI.h"
 
-#include "Utilities/Utilities.h"
+#include "Renderer/Renderer.h"
+
+#include "ImGuizmo.h"
+
+#include <algorithm>
+#include <cstring>
+
+#include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtc/type_ptr.hpp>
+
+namespace {
+	void ApplyTransformMatrix(TransformComponent& transform, const glm::mat4& matrix, ImGuizmo::OPERATION operation) {
+		float translation[3];
+		float rotation[3];
+		float scale[3];
+		float mutableMatrix[16];
+
+		memcpy(mutableMatrix, glm::value_ptr(matrix), sizeof(mutableMatrix));
+		ImGuizmo::DecomposeMatrixToComponents(mutableMatrix, translation, rotation, scale);
+
+		switch (operation) {
+			case ImGuizmo::TRANSLATE:
+				transform.Position = { translation[0], translation[1], translation[2] };
+				break;
+			case ImGuizmo::ROTATE:
+				transform.Rotation = { rotation[0], rotation[1], rotation[2] };
+				break;
+			case ImGuizmo::SCALE:
+				transform.Scale = { scale[0], scale[1], scale[2] };
+				break;
+			default:
+				transform.Position = { translation[0], translation[1], translation[2] };
+				transform.Rotation = { rotation[0], rotation[1], rotation[2] };
+				transform.Scale = { scale[0], scale[1], scale[2] };
+				break;
+		}
+	}
+}
+
+SceneWindow::SceneWindow(bool& isOpen, Scene& scene, UUID& selectedEntityID)
+	: Window(isOpen), m_Scene(scene), m_SelectedEntityID(selectedEntityID), m_SceneCamera(SettingsManager::Get().Editor.SceneCamera) {}
 
 void SceneWindow::OnCreate() {
-	Log::Trace("SceneWindow::OnCreate - Creating Inspector Window");
+	Log::Trace("SceneWindow::OnCreate - Creating Scene View Window");
 }
 
 void SceneWindow::OnAttach() {
-	Log::Trace("SceneWindow::OnAttach - Attaching Inspector Window");
-
-	if (m_Scene.GetEntityIDs().empty()) {
-		CreateEmpty();
-	}
+	Log::Trace("SceneWindow::OnAttach - Attaching Scene View Window");
+	EnsureFramebuffer();
 }
 
 void SceneWindow::OnDetach() {
-	Log::Trace("SceneWindow::OnDetach - Detaching Inspector Window");
+	Log::Trace("SceneWindow::OnDetach - Detaching Scene View Window");
+	m_Framebuffer.reset();
 }
 
 void SceneWindow::OnUpdate(Timestep ts) {
-	if (Input::IsKeyDown(KeyCode::Delete) && m_SelectedEntityID != 0) {
-		m_Scene.DestroyEntity(m_SelectedEntityID);
-		m_SelectedEntityID = UUID(0);
+	if (!m_IsOpen || !m_Framebuffer || m_WindowWidth == 0 || m_WindowHeight == 0) {
+		return;
 	}
+
+	m_SceneCamera.Update(ts, m_WindowHovered, m_WindowFocused);
+
+	Renderer::RenderRequest request;
+	request.TargetFramebuffer = m_Framebuffer;
+	request.Source = Renderer::CameraSource::Override;
+	request.OverrideCamera.Position = m_SceneCamera.GetPosition();
+	request.OverrideCamera.View = m_SceneCamera.GetView();
+	request.OverrideCamera.Projection = m_SceneCamera.GetProjection((float)m_WindowWidth / (float)m_WindowHeight);
+	request.OverrideCamera.ViewProjection = request.OverrideCamera.Projection * request.OverrideCamera.View;
+
+	Renderer::Begin();
+	Renderer::Submit(m_Scene, request, nullptr);
+	Renderer::End();
 }
 
 void SceneWindow::OnUIRender() {
@@ -37,122 +89,162 @@ void SceneWindow::OnUIRender() {
 		return;
 	}
 
+	ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0, 0));
 	if (ImGui::Begin("Scene", &m_IsOpen)) {
-		if (UI::Button("Create Entity")) {
-			auto entity = m_Scene.CreateEntity("Entity");
-		}
-
-		UI::Separator();
-
-		auto& entities = m_Scene.GetEntityIDs();
-		UUID deleteCandidate = UUID(0);
-
-		for (auto id : entities) {
-			auto entity = m_Scene.GetEntity(id);
-			auto* nameComponent = entity.GetComponent<NameComponent>();
-			const std::string label = nameComponent != nullptr ? nameComponent->Name : "Entity";
-
-			ImGui::PushID(static_cast<int>(id));
-
-			if (ImGui::Selectable(label.c_str(), id == m_SelectedEntityID)) {
-				m_SelectedEntityID = id;
-			}
-
-			ImGui::SameLine();
-			if (ImGui::SmallButton("Delete")) {
-				deleteCandidate = id;
-			}
-
-			ImGui::PopID();
-		}
-
-		if (deleteCandidate != UUID(0)) {
-			m_Scene.DestroyEntity(deleteCandidate);
-
-			if (m_SelectedEntityID == deleteCandidate) {
-				m_SelectedEntityID = UUID(0);
-			}
-		}
+		Update();
+		Draw();
 	}
 
-	DeselectEntityIfClickedOutside();
-	CreateEntityPopup();
+	ImGui::End();
+	ImGui::PopStyleVar();
 
+	if (ImGui::Begin("Scene Controls", &m_IsOpen)) {
+		if (UI::Button("Translate")) {
+			m_GizmoOperation = ImGuizmo::TRANSLATE;
+		}
+
+		if (UI::Button("Rotate")) {
+			m_GizmoOperation = ImGuizmo::ROTATE;
+		}
+
+		if (UI::Button("Scale")) {
+			m_GizmoOperation = ImGuizmo::SCALE;
+		}
+
+		if (UI::Button("Local")) {
+			m_GizmoMode = ImGuizmo::LOCAL;
+		}
+
+		if (UI::Button("World")) {
+			m_GizmoMode = ImGuizmo::WORLD;
+		}
+	}
 	ImGui::End();
 }
 
-void SceneWindow::CreateEntityPopup() {
-	if (ImGui::BeginPopupContextWindow("##CreateEntity",
-		ImGuiPopupFlags_MouseButtonRight | ImGuiPopupFlags_NoOpenOverItems)) {
-		if (ImGui::BeginMenu("Create")) {
-			if (ImGui::MenuItem("Empty")) {
-				m_SelectedEntityID = CreateEmpty().ID;
+void SceneWindow::Update() {
+	const ImVec2 windowSize = ImGui::GetContentRegionAvail();
+	const auto& settings = SettingsManager::Get().Rendering.Resolution;
+
+	m_WindowWidth = static_cast<uint32_t>(std::max(0.0f, windowSize.x * settings.Scale));
+	m_WindowHeight = static_cast<uint32_t>(std::max(0.0f, windowSize.y * settings.Scale));
+
+	EnsureFramebuffer();
+	Resize();
+
+	m_WindowHovered = ImGui::IsWindowHovered();
+	m_WindowFocused = ImGui::IsWindowFocused(ImGuiFocusedFlags_RootAndChildWindows);
+}
+
+void SceneWindow::Resize() {
+	if (m_Framebuffer && m_WindowWidth > 0 && m_WindowHeight > 0) {
+		if (m_Framebuffer->GetWidth() != m_WindowWidth || m_Framebuffer->GetHeight() != m_WindowHeight) {
+			m_Framebuffer->Resize(m_WindowWidth, m_WindowHeight);
+		}
+	}
+}
+
+void SceneWindow::Draw() {
+	if (!m_Framebuffer || m_WindowWidth == 0 || m_WindowHeight == 0) {
+		return;
+	}
+
+	DrawImage();
+	DrawGizmo();
+
+	if (ImGui::BeginDragDropTarget()) {
+		if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload(Payload::ToUIPayload(Payload::Type::Scene))) {
+			const char* path = (const char*)payload->Data;
+			
+			if (m_SceneLoadCallback) {
+				m_SceneLoadCallback(std::filesystem::path(path));
 			}
-
-			if (ImGui::MenuItem("Camera")) {
-				m_SelectedEntityID = CreateCamera().ID;
-			}
-
-			if (ImGui::BeginMenu("Light")) {
-				if (ImGui::MenuItem("Directional")) {
-					m_SelectedEntityID = CreateDirectionalLight().ID;
-				}
-
-				if (ImGui::MenuItem("Point")) {
-					m_SelectedEntityID = CreatePointLight().ID;
-				}
-
-				if (ImGui::MenuItem("Spot")) {
-					m_SelectedEntityID = CreateSpotLight().ID;
-				}
-
-				ImGui::EndMenu();
-			}
-
-			ImGui::EndMenu();
 		}
 
-		ImGui::EndPopup();
+		ImGui::EndDragDropTarget();
 	}
 }
 
-void SceneWindow::DeselectEntityIfClickedOutside() {
-	if (ImGui::IsMouseDown(0) && ImGui::IsWindowHovered()) {
-		m_SelectedEntityID = UUID(0);
+void SceneWindow::DrawImage() {
+	if (const auto& finalImage = m_Framebuffer->GetColorAttachment()) {
+		const auto& settings = SettingsManager::Get().Rendering.Resolution;
+
+		ImGui::Image(
+			(ImTextureRef)finalImage->GetHandle(),
+			{(float)finalImage->GetWidth() / settings.Scale, (float)finalImage->GetHeight() / settings.Scale},
+			{0, 1}, {1, 0}
+		);
 	}
 }
 
-Entity SceneWindow::CreateEmpty() {
-	return m_Scene.CreateEntity("Empty");
+void SceneWindow::DrawGizmo() {
+	if (m_SelectedEntityID == UUID(0)) {
+		return;
+	}
+	
+	Entity entity = m_Scene.GetEntity(m_SelectedEntityID);
+	auto* transformComponent = entity.GetComponent<TransformComponent>();
+	if (!transformComponent) {
+		return;
+	}
+
+	ImGuizmo::SetOrthographic(false);
+	ImGuizmo::SetDrawlist();
+
+	ImVec2 windowPos = ImGui::GetWindowPos();
+	ImVec2 contentMin = ImGui::GetWindowContentRegionMin();
+	float windowWidth = ImGui::GetWindowWidth();
+	float windowHeight = ImGui::GetWindowHeight();
+
+	if (windowWidth <= 0.0f || windowHeight <= 0.0f) {
+		return;
+	}
+
+	ImGuizmo::SetRect(windowPos.x, windowPos.y, windowWidth, windowHeight);
+
+	const glm::mat4& cameraProjection = m_SceneCamera.GetProjection((float)m_WindowWidth / (float)m_WindowHeight);
+	const glm::mat4& cameraView = m_SceneCamera.GetView();
+
+	glm::mat4 transform = transformComponent->GetTransform();
+
+	ImGuizmo::Manipulate(
+		glm::value_ptr(cameraView),
+		glm::value_ptr(cameraProjection),
+		m_GizmoOperation,
+		m_GizmoMode,
+		glm::value_ptr(transform)
+	);
+
+	if (ImGuizmo::IsUsing()) {
+		ApplyTransformMatrix(*transformComponent, transform, m_GizmoOperation);
+	}
 }
 
-Entity SceneWindow::CreateCamera() {
-	auto entity = m_Scene.CreateEntity("Camera");
-	entity.AddComponent<CameraComponent>();
-
-	return entity;
+void SceneWindow::EnsureFramebuffer() {
+	if (!m_Framebuffer) {
+		const uint32_t width = std::max(1u, m_WindowWidth);
+		const uint32_t height = std::max(1u, m_WindowHeight);
+		m_Framebuffer = CreateFramebuffer(width, height);
+	}
 }
 
-Entity SceneWindow::CreateDirectionalLight() {
-	auto entity = m_Scene.CreateEntity("Directional Light");
-	auto& component = entity.AddComponent<LightComponent>();
-	component.Type = LightType::Directional;
+Ref<Framebuffer> SceneWindow::CreateFramebuffer(uint32_t width, uint32_t height) {
+	TextureSpecification colorSpec;
+	colorSpec.Width = width;
+	colorSpec.Height = height;
+	colorSpec.Format = TextureFormat::RGBA16F;
+	colorSpec.MinFilter = TextureFilter::Linear;
+	colorSpec.MagFilter = TextureFilter::Linear;
+	colorSpec.WrapS = TextureWrap::ClampToEdge;
+	colorSpec.WrapT = TextureWrap::ClampToEdge;
+	colorSpec.GenerateMips = false;
 
-	return entity;
-}
+	FramebufferSpecification specification;
+	specification.Width = width;
+	specification.Height = height;
+	specification.ColorAttachments.push_back(colorSpec);
+	specification.HasDepthAttachment = true;
+	specification.DepthAttachmentSpecification.Format = TextureFormat::Depth24Stencil8;
 
-Entity SceneWindow::CreatePointLight() {
-	auto entity = m_Scene.CreateEntity("Point Light");
-	auto& component = entity.AddComponent<LightComponent>();
-	component.Type = LightType::Point;
-
-	return entity;
-}
-
-Entity SceneWindow::CreateSpotLight() {
-	auto entity = m_Scene.CreateEntity("Spot Light");
-	auto& component = entity.AddComponent<LightComponent>();
-	component.Type = LightType::Spot;
-
-	return entity;
+	return Framebuffer::Create(specification);
 }

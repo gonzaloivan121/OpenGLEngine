@@ -281,13 +281,13 @@ void SettingsSerializer::SerializeEditorSettings(YAML::Emitter& out) {
 		{
 			const auto& windows = editor.Windows;
 			out << YAML::Key << "ShowAbout"			<< YAML::Value << windows.ShowAbout;
+			out << YAML::Key << "ShowGame"			<< YAML::Value << windows.ShowGame;
+			out << YAML::Key << "ShowHierarchy"		<< YAML::Value << windows.ShowHierarchy;
 			out << YAML::Key << "ShowInspector"		<< YAML::Value << windows.ShowInspector;
 			out << YAML::Key << "ShowProject"		<< YAML::Value << windows.ShowProject;
 			out << YAML::Key << "ShowScene"			<< YAML::Value << windows.ShowScene;
 			out << YAML::Key << "ShowSettings"		<< YAML::Value << windows.ShowSettings;
 			out << YAML::Key << "ShowStatistics"	<< YAML::Value << windows.ShowStatistics;
-			out << YAML::Key << "ShowViewport"		<< YAML::Value << windows.ShowViewport;
-			out << YAML::Key << "ShowGame"			<< YAML::Value << windows.ShowGame;
 		}
 		out << YAML::EndMap; // Windows
 
@@ -547,6 +547,14 @@ void SettingsSerializer::DeserializeEditorSettings(const YAML::Node& settingsNod
 				windows.ShowAbout = showAboutNode.as<bool>();
 			}
 
+			if (const auto& showGameNode = windowsNode["ShowGame"]) {
+				windows.ShowGame = showGameNode.as<bool>();
+			}
+
+			if (const auto& showHierarchyNode = windowsNode["ShowHierarchy"]) {
+				windows.ShowHierarchy = showHierarchyNode.as<bool>();
+			}
+
 			if (const auto& showInspectorNode = windowsNode["ShowInspector"]) {
 				windows.ShowInspector = showInspectorNode.as<bool>();
 			}
@@ -565,14 +573,6 @@ void SettingsSerializer::DeserializeEditorSettings(const YAML::Node& settingsNod
 
 			if (const auto& showStatisticsNode = windowsNode["ShowStatistics"]) {
 				windows.ShowStatistics = showStatisticsNode.as<bool>();
-			}
-
-			if (const auto& showViewportNode = windowsNode["ShowViewport"]) {
-				windows.ShowViewport = showViewportNode.as<bool>();
-			}
-
-			if (const auto& showGameNode = windowsNode["ShowGame"]) {
-				windows.ShowGame = showGameNode.as<bool>();
 			}
 		}
 

@@ -360,7 +360,7 @@ struct AppearanceSettings {
 };
 
 /**
- * Represents the editor scene camera settings used by the Scene viewport.
+ * Represents the editor scene camera settings used by the Scene window.
  *
  * These values control the live camera pose and navigation behavior inside the Scene view.
  */
@@ -403,32 +403,32 @@ struct SceneCameraSettings {
 };
 
 /**
- * Represents the default visibility of editor windows on startup.
+ * Represents the visibility of editor windows.
  */
 struct WindowsSettings {
-	/// @brief Whether the About window is visible on startup.
+	/// @brief Whether the About window is visible.
 	bool ShowAbout = false;
 
-	/// @brief Whether the Inspector window is visible on startup.
+	/// @brief Whether the Game window is visible.
+	bool ShowGame = true;
+
+	/// @brief Whether the Hierarchy window is visible.
+	bool ShowHierarchy = true;
+
+	/// @brief Whether the Inspector window is visible.
 	bool ShowInspector = true;
 
-	/// @brief Whether the Project window is visible on startup.
+	/// @brief Whether the Project window is visible.
 	bool ShowProject = false;
 
-	/// @brief Whether the Scene window is visible on startup.
+	/// @brief Whether the Scene window is visible.
 	bool ShowScene = true;
 
-	/// @brief Whether the Settings window is visible on startup.
+	/// @brief Whether the Settings window is visible.
 	bool ShowSettings = false;
 
-	/// @brief Whether the Statistics window is visible on startup.
+	/// @brief Whether the Statistics window is visible.
 	bool ShowStatistics = false;
-
-	/// @brief Whether the Viewport window is visible on startup.
-	bool ShowViewport = true;
-
-	/// @brief Whether the Game window is visible on startup.
-	bool ShowGame = true;
 };
 
 /**
@@ -440,7 +440,7 @@ struct EditorSettings {
 	/// @brief The appearance settings that allow users to customize the visual aspects of the editor interface, such as the theme, font size, UI scale, and column width.
 	AppearanceSettings Appearance;
 
-	/// @brief The live scene camera settings used by the Scene viewport.
+	/// @brief The live scene camera settings used by the Scene window.
 	SceneCameraSettings SceneCamera;
 
 	/// @brief The default visibility of editor windows on startup.
@@ -451,7 +451,7 @@ struct EditorSettings {
 };
 
 /**
- * Represents settings that control the interactive navigation of the viewport.
+ * Represents settings that control the interactive navigation of the Scene window.
  */
 struct NavigationSettings {
 	/// @brief Speed multiplier for panning/movement. Higher values move the view faster.
@@ -505,7 +505,7 @@ struct Settings {
 	/// @brief The editor settings that provide configuration options specific to the editor interface, allowing users to customize the appearance and behavior of the editor.
 	EditorSettings Editor;
 
-	/// @brief The navigation settings that control viewport interaction speeds and behaviour.
+	/// @brief The navigation settings that control Scene window interaction speeds and behaviour.
 	NavigationSettings Navigation;
 
 	/// @brief The export settings that control the format and destination of exported images and configurations.
