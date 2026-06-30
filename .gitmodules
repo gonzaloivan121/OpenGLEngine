@@ -14,3 +14,12 @@
 [submodule "Vendor/stb"]
 	path = Vendor/stb
 	url = https://github.com/nothings/stb.git
+[submodule "Vendor/ImGuizmo"]
+	path = Vendor/ImGuizmo
+	url = https://github.com/CedricGuillemet/ImGuizmo.git
+[submodule "Vendor/portaudio"]
+	path = Vendor/portaudio
+	url = https://github.com/PortAudio/portaudio
+[submodule "Vendor/dr_libs"]
+	path = Vendor/dr_libs
+	url = https://github.com/mackron/dr_libs.git

@@ -23,7 +23,9 @@ group "Dependencies"
 	include "Vendor/glfw"
 	include "Vendor/glad"
 	include "Vendor/imgui"
+    include "Vendor/ImGuizmo"
     include "Vendor/yaml-cpp"
+    include "Vendor/portaudio"
 group ""
 
 project "OpenGLEngine"
@@ -42,7 +44,10 @@ project "OpenGLEngine"
         "Vendor/stb/stb_image.h",
         "Vendor/stb/stb_image_write.h",
 		"Vendor/glm/glm/**.hpp",
-		"Vendor/glm/glm/**.inl"
+		"Vendor/glm/glm/**.inl",
+        "Vendor/ImGuizmo/*.h",
+        "Vendor/portaudio/include/*.h",
+        "Vendor/dr_libs/*.h"
     }
 
     defines {
@@ -50,7 +55,8 @@ project "OpenGLEngine"
         "_CRT_SECURE_NO_WARNINGS",
 		"GLFW_INCLUDE_NONE",
         "YAML_CPP_STATIC_DEFINE",
-        "GLM_ENABLE_EXPERIMENTAL"
+        "GLM_ENABLE_EXPERIMENTAL",
+        "DR_WAV_IMPLEMENTATION"
     }
 
     includedirs {
@@ -61,13 +67,18 @@ project "OpenGLEngine"
 		"%{IncludeDir.ImGui}",
 		"%{IncludeDir.glm}",
 		"%{IncludeDir.yamlcpp}",
+        "%{IncludeDir.ImGuizmo}",
+        "%{IncludeDir.portaudio}",
+        "%{IncludeDir.dr_libs}"
     }
 
     links {
 		"GLFW",
 		"Glad",
 		"ImGui",
+        "ImGuizmo",
         "yamlcpp",
+        "portaudio"
     }
 
     postbuildcommands {
