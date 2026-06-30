@@ -1,8 +1,9 @@
 #pragma once
 
+#include "Core/Audio/AudioChannel.h"
 #include "Core/Settings/Settings.h"
 
-#include "ECS/Components.h"
+#include "ECS/Components/LightComponent.h"
 
 #include "Editor/Theme/Theme.h"
 
@@ -30,4 +31,13 @@ public:
 
 	static std::string LightTypeToString(const LightType& type);
 	static LightType StringToLightType(const std::string& type);
+
+	static std::string SampleRateToString(const SampleRate& sampleRate);
+	static SampleRate StringToSampleRate(const std::string& sampleRate);
+
+	static std::string BufferSizeToString(const BufferSize& bufferSize);
+	static BufferSize StringToBufferSize(const std::string& bufferSize);
+
+	static std::string AudioChannelToString(const AudioChannel& channel);
+	static AudioChannel StringToAudioChannel(const std::string& channel);
 };

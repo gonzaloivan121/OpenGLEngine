@@ -127,6 +127,7 @@ EditorTheme Utilities::StringToEditorTheme(const std::string& theme) {
 std::string Utilities::CategoryToString(const Category& category) {
 	switch (category) {
 		case Category::Application:		return "Application";
+		case Category::Audio:			return "Audio";
 		case Category::Editor:			return "Editor";
 		case Category::Graphics:		return "Graphics";
 		case Category::Input:			return "Input";
@@ -141,6 +142,7 @@ std::string Utilities::CategoryToString(const Category& category) {
 
 Category Utilities::StringToCategory(const std::string& category) {
 	if (category == "Application")	return Category::Application;
+	if (category == "Audio")		return Category::Audio;
 	if (category == "Editor")		return Category::Editor;
 	if (category == "Graphics")		return Category::Graphics;
 	if (category == "Input")		return Category::Input;
@@ -233,4 +235,85 @@ LightType Utilities::StringToLightType(const std::string& type) {
 	Log::Error("Utilities::StringToLightType - Unknown Light Type");
 
 	return LightType::Directional;
+}
+
+std::string Utilities::SampleRateToString(const SampleRate& sampleRate) {
+	switch (sampleRate) {
+		case SampleRate::SR_44100:	return "44100";
+		case SampleRate::SR_48000:	return "48000";
+		case SampleRate::SR_88200:	return "88200";
+		case SampleRate::SR_96000:	return "96000";
+		case SampleRate::SR_176400:	return "176400";
+		case SampleRate::SR_192000:	return "192000";
+		default:					return "Unknown";
+	}
+}
+
+SampleRate Utilities::StringToSampleRate(const std::string& sampleRate) {
+	if (sampleRate == "44100")	return SampleRate::SR_44100;
+	if (sampleRate == "48000")	return SampleRate::SR_48000;
+	if (sampleRate == "88200")	return SampleRate::SR_88200;
+	if (sampleRate == "96000")	return SampleRate::SR_96000;
+	if (sampleRate == "176400")	return SampleRate::SR_176400;
+	if (sampleRate == "192000")	return SampleRate::SR_192000;
+
+	Log::Error("Utilities::StringToSampleRate - Unknown Sample Rate");
+
+	return SampleRate::SR_44100;
+}
+
+std::string Utilities::BufferSizeToString(const BufferSize& bufferSize) {
+	switch (bufferSize) {
+		case BufferSize::BS_16:		return "16";
+		case BufferSize::BS_32:		return "32";
+		case BufferSize::BS_48:		return "48";
+		case BufferSize::BS_64:		return "64";
+		case BufferSize::BS_96:		return "96";
+		case BufferSize::BS_128:	return "128";
+		case BufferSize::BS_160:	return "160";
+		case BufferSize::BS_192:	return "192";
+		case BufferSize::BS_256:	return "256";
+		case BufferSize::BS_512:	return "512";
+		case BufferSize::BS_1024:	return "1024";
+		default:					return "Unknown";
+	}
+}
+
+BufferSize Utilities::StringToBufferSize(const std::string& bufferSize) {
+	if (bufferSize == "16")		return BufferSize::BS_16;
+	if (bufferSize == "32")		return BufferSize::BS_32;
+	if (bufferSize == "48")		return BufferSize::BS_48;
+	if (bufferSize == "64")		return BufferSize::BS_64;
+	if (bufferSize == "96")		return BufferSize::BS_96;
+	if (bufferSize == "128")	return BufferSize::BS_128;
+	if (bufferSize == "160")	return BufferSize::BS_160;
+	if (bufferSize == "192")	return BufferSize::BS_192;
+	if (bufferSize == "256")	return BufferSize::BS_256;
+	if (bufferSize == "512")	return BufferSize::BS_512;
+	if (bufferSize == "1024")	return BufferSize::BS_1024;
+
+	Log::Error("Utilities::StringToBufferSize - Unknown Buffer Size");
+
+	return BufferSize::BS_16;
+}
+
+std::string Utilities::AudioChannelToString(const AudioChannel& channel) {
+	switch (channel) {
+		case AudioChannel::Ambience:	return "Ambience";
+		case AudioChannel::Music:		return "Music";
+		case AudioChannel::Effects:		return "Effects";
+		case AudioChannel::Voices:		return "Voices";
+		default:						return "Unknown";
+	}
+}
+
+AudioChannel Utilities::StringToAudioChannel(const std::string& channel) {
+	if (channel == "Ambience")	return AudioChannel::Ambience;
+	if (channel == "Music")		return AudioChannel::Music;
+	if (channel == "Effects")	return AudioChannel::Effects;
+	if (channel == "Voices")	return AudioChannel::Voices;
+
+	Log::Error("Utilities::StringToAudioChannel - Unknown Audio Channel");
+
+	return AudioChannel::Ambience;
 }

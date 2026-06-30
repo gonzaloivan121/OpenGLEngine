@@ -5,7 +5,9 @@
 #include "Core/Input/Input.h"
 #include "Core/Input/Cursor.h"
 
-#include "Core/Settings/SettingsManager.h"
+#include "Core/Settings/Manager/SettingsManager.h"
+
+#include "Core/Audio/AudioEngine.h"
 
 #include "Renderer/Renderer.h"
 
@@ -181,6 +183,10 @@ void Application::Init() {
 	// Initialize the UI system, which will set up ImGui and prepare for rendering the user interface.
 	Log::Trace("Application::Init - Initializing the UI");
 	UI::Init();
+
+	// Initialize the audio engine, which will set up PortAudio and prepare for audio playback.
+	Log::Trace("Application::Init - Initializing the Audio Engine");
+	AudioEngine::Init();
 }
 
 void Application::Shutdown() {
@@ -208,6 +214,10 @@ void Application::Shutdown() {
 	// Shut down the UI system, which will clean up ImGui resources and prepare for application exit.
 	Log::Trace("Application::Shutdown - Shutting down the UI");
 	UI::Shutdown();
+
+	// Shut down the audio engine, which will clean up PortAudio resources and prepare for application exit.
+	Log::Trace("Application::Shutdown - Shutting down the Audio Engine");
+	AudioEngine::Shutdown();
 
 	// Destroy the GLFW window and terminate GLFW to clean up resources before exiting the application.
 	Log::Trace("Application::Shutdown - Destroying Window");

@@ -10,6 +10,20 @@ Settings:
     DebugMode: false
     EscapeClosesApp: false
     LogToFile: false
+  Audio:
+    Volume:
+      Master: 1
+      Ambience: 1
+      Effects: 1
+      Music: 1
+      Voices: 1
+      MuteAll: false
+    Device:
+      InputDeviceID: 3
+      OutputDeviceID: 2
+      SampleRate: 48000
+      BufferSize: 256
+      PassThrough: false
   Editor:
     Appearance:
       Theme: Excellency
@@ -19,6 +33,22 @@ Settings:
       ProjectWindow:
         IconSize: 64
         IconPadding: 24
+    SceneCamera:
+      Position:
+        - 0
+        - 0
+        - 5
+      Yaw: -90
+      Pitch: 0
+      FOV: 60
+      NearClip: 0.1
+      FarClip: 1000
+      MovementSpeed: 2
+      FastMovementSpeed: 5
+      RotationSpeed: 2
+      ZoomSpeed: 2
+      Smoothing: 5
+      InvertZoom: false
     Windows:
       ShowAbout: false
       ShowInspector: true
@@ -27,6 +57,7 @@ Settings:
       ShowSettings: false
       ShowStatistics: false
       ShowViewport: true
+      ShowGame: true
     AutoSaveInterval: 10
   Rendering:
     Engine: OpenGL

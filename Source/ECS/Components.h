@@ -1,5 +1,6 @@
 #pragma once
 
+#include "Components/AudioComponent.h"
 #include "Components/CameraComponent.h"
 #include "Components/LightComponent.h"
 #include "Components/MaterialComponent.h"

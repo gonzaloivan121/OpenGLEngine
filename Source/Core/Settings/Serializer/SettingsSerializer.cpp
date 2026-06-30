@@ -88,6 +88,7 @@ bool SettingsSerializer::Serialize(const std::filesystem::path& filepath) {
 			out << YAML::BeginMap; // Settings
 			{
 				SerializeApplicationSettings(out);
+				SerializeAudioSettings(out);
 				SerializeEditorSettings(out);
 				SerializeRenderingSettings(out);
 				SerializeNavigationSettings(out);
@@ -157,6 +158,7 @@ bool SettingsSerializer::Deserialize(const std::filesystem::path& filepath) {
 
 	// Deserialize the settings from the corresponding nodes in the YAML data and update the current settings accordingly.
 	DeserializeApplicationSettings(settingsNode);
+	DeserializeAudioSettings(settingsNode);
 	DeserializeEditorSettings(settingsNode);
 	DeserializeRenderingSettings(settingsNode);
 	DeserializeNavigationSettings(settingsNode);
@@ -197,6 +199,41 @@ void SettingsSerializer::SerializeApplicationSettings(YAML::Emitter& out) {
 	Log::Trace("SettingsSerializer::SerializeApplicationSettings - Application Settings Serialized");
 }
 
+void SettingsSerializer::SerializeAudioSettings(YAML::Emitter& out) {
+	Log::Trace("SettingsSerializer::SerializeAudioSettings - Serializing Audio Settings");
+
+	out << YAML::Key << "Audio" << YAML::Value << YAML::BeginMap; // Audio
+	{
+		const auto& audio = m_Settings.Audio;
+
+		out << YAML::Key << "Volume" << YAML::Value << YAML::BeginMap; // Volume
+		{
+			const auto& volume = audio.Volume;
+			out << YAML::Key << "Master" << YAML::Value << volume.Master;
+			out << YAML::Key << "Ambience" << YAML::Value << volume.Ambience;
+			out << YAML::Key << "Effects" << YAML::Value << volume.Effects;
+			out << YAML::Key << "Music" << YAML::Value << volume.Music;
+			out << YAML::Key << "Voices" << YAML::Value << volume.Voices;
+			out << YAML::Key << "MuteAll" << YAML::Value << volume.MuteAll;
+		}
+		out << YAML::EndMap; // Volume
+
+		out << YAML::Key << "Device" << YAML::Value << YAML::BeginMap; // Device
+		{
+			const auto& device = audio.Device;
+			out << YAML::Key << "InputDeviceID" << YAML::Value << device.InputDeviceID;
+			out << YAML::Key << "OutputDeviceID" << YAML::Value << device.OutputDeviceID;
+			out << YAML::Key << "SampleRate" << YAML::Value << Utilities::SampleRateToString(device.SampleRate);
+			out << YAML::Key << "BufferSize" << YAML::Value << Utilities::BufferSizeToString(device.BufferSize);
+			out << YAML::Key << "PassThrough" << YAML::Value << device.PassThrough;
+		}
+		out << YAML::EndMap; // Device
+	}
+	out << YAML::EndMap; // Audio
+
+	Log::Trace("SettingsSerializer::SerializeAudioSettings - Audio Settings Serialized");
+}
+
 void SettingsSerializer::SerializeEditorSettings(YAML::Emitter& out) {
 	Log::Trace("SettingsSerializer::SerializeEditorSettings - Serializing Editor Settings");
 
@@ -220,6 +257,26 @@ void SettingsSerializer::SerializeEditorSettings(YAML::Emitter& out) {
 		}
 		out << YAML::EndMap; // Appearance
 
+		out << YAML::Key << "SceneCamera" << YAML::Value << YAML::BeginMap; // SceneCamera
+		{
+			const auto& camera = editor.SceneCamera;
+			out << YAML::Key << "Position" << YAML::Value << YAML::BeginSeq;
+			out << camera.Position.x << camera.Position.y << camera.Position.z;
+			out << YAML::EndSeq;
+			out << YAML::Key << "Yaw" << YAML::Value << camera.Yaw;
+			out << YAML::Key << "Pitch" << YAML::Value << camera.Pitch;
+			out << YAML::Key << "FOV" << YAML::Value << camera.FOV;
+			out << YAML::Key << "NearClip" << YAML::Value << camera.NearClip;
+			out << YAML::Key << "FarClip" << YAML::Value << camera.FarClip;
+			out << YAML::Key << "MovementSpeed" << YAML::Value << camera.MovementSpeed;
+			out << YAML::Key << "FastMovementSpeed" << YAML::Value << camera.FastMovementSpeed;
+			out << YAML::Key << "RotationSpeed" << YAML::Value << camera.RotationSpeed;
+			out << YAML::Key << "ZoomSpeed" << YAML::Value << camera.ZoomSpeed;
+			out << YAML::Key << "Smoothing" << YAML::Value << camera.Smoothing;
+			out << YAML::Key << "InvertZoom" << YAML::Value << camera.InvertZoom;
+		}
+		out << YAML::EndMap; // SceneCamera
+
 		out << YAML::Key << "Windows" << YAML::Value << YAML::BeginMap; // Windows
 		{
 			const auto& windows = editor.Windows;
@@ -230,6 +287,7 @@ void SettingsSerializer::SerializeEditorSettings(YAML::Emitter& out) {
 			out << YAML::Key << "ShowSettings"		<< YAML::Value << windows.ShowSettings;
 			out << YAML::Key << "ShowStatistics"	<< YAML::Value << windows.ShowStatistics;
 			out << YAML::Key << "ShowViewport"		<< YAML::Value << windows.ShowViewport;
+			out << YAML::Key << "ShowGame"			<< YAML::Value << windows.ShowGame;
 		}
 		out << YAML::EndMap; // Windows
 
@@ -320,6 +378,68 @@ void SettingsSerializer::DeserializeApplicationSettings(const YAML::Node& settin
 	Log::Trace("SettingsSerializer::DeserializeApplicationSettings - Application Settings Deserialized");
 }
 
+void SettingsSerializer::DeserializeAudioSettings(const YAML::Node& settingsNode) {
+	Log::Trace("SettingsSerializer::DeserializeAudioSettings - Deserializing Audio Settings");
+
+	if (const auto& audioNode = settingsNode["Audio"]) {
+		auto& audio = m_Settings.Audio;
+
+		if (const auto& volumeNode = audioNode["Volume"]) {
+			auto& volume = audio.Volume;
+
+			if (const auto& masterNode = volumeNode["Master"]) {
+				volume.Master = masterNode.as<float>();
+			}
+
+			if (const auto& ambienceNode = volumeNode["Ambience"]) {
+				volume.Ambience = ambienceNode.as<float>();
+			}
+
+			if (const auto& effectsNode = volumeNode["Effects"]) {
+				volume.Effects = effectsNode.as<float>();
+			}
+
+			if (const auto& musicNode = volumeNode["Music"]) {
+				volume.Music = musicNode.as<float>();
+			}
+
+			if (const auto& voicesNode = volumeNode["Voices"]) {
+				volume.Voices = voicesNode.as<float>();
+			}
+
+			if (const auto& muteAllNode = volumeNode["MuteAll"]) {
+				volume.MuteAll = muteAllNode.as<bool>();
+			}
+		}
+
+		if (const auto& deviceNode = audioNode["Device"]) {
+			auto& device = audio.Device;
+
+			if (const auto& inputDeviceIDNode = deviceNode["InputDeviceID"]) {
+				device.InputDeviceID = inputDeviceIDNode.as<int>();
+			}
+
+			if (const auto& outputDeviceIDNode = deviceNode["OutputDeviceID"]) {
+				device.OutputDeviceID = outputDeviceIDNode.as<int>();
+			}
+
+			if (const auto& sampleRateNode = deviceNode["SampleRate"]) {
+				device.SampleRate = Utilities::StringToSampleRate(sampleRateNode.as<std::string>());
+			}
+
+			if (const auto& bufferSizeNode = deviceNode["BufferSize"]) {
+				device.BufferSize = Utilities::StringToBufferSize(bufferSizeNode.as<std::string>());
+			}
+
+			if (const auto& passThroughNode = deviceNode["PassThrough"]) {
+				device.PassThrough = passThroughNode.as<bool>();
+			}
+		}
+	}
+
+	Log::Trace("SettingsSerializer::DeserializeAudioSettings - Audio Settings Deserialized");
+}
+
 void SettingsSerializer::DeserializeEditorSettings(const YAML::Node& settingsNode) {
 	Log::Trace("SettingsSerializer::DeserializeEditorSettings - Deserializing Editor Settings");
 
@@ -358,6 +478,68 @@ void SettingsSerializer::DeserializeEditorSettings(const YAML::Node& settingsNod
 			}
 		}
 
+		auto& sceneCamera = editor.SceneCamera;
+		sceneCamera.MovementSpeed = m_Settings.Navigation.MovementSpeed;
+		sceneCamera.FastMovementSpeed = m_Settings.Navigation.FastMovementSpeed;
+		sceneCamera.RotationSpeed = m_Settings.Navigation.RotationSpeed;
+		sceneCamera.ZoomSpeed = m_Settings.Navigation.ZoomSpeed;
+		sceneCamera.Smoothing = m_Settings.Navigation.Smoothing;
+		sceneCamera.InvertZoom = m_Settings.Navigation.InvertZoom;
+
+		if (const auto& sceneCameraNode = editorNode["SceneCamera"]) {
+			if (const auto& positionNode = sceneCameraNode["Position"]) {
+				if (positionNode.IsSequence() && positionNode.size() == 3) {
+					sceneCamera.Position.x = positionNode[0].as<float>();
+					sceneCamera.Position.y = positionNode[1].as<float>();
+					sceneCamera.Position.z = positionNode[2].as<float>();
+				}
+			}
+
+			if (const auto& yawNode = sceneCameraNode["Yaw"]) {
+				sceneCamera.Yaw = yawNode.as<float>();
+			}
+
+			if (const auto& pitchNode = sceneCameraNode["Pitch"]) {
+				sceneCamera.Pitch = pitchNode.as<float>();
+			}
+
+			if (const auto& fovNode = sceneCameraNode["FOV"]) {
+				sceneCamera.FOV = fovNode.as<float>();
+			}
+
+			if (const auto& nearClipNode = sceneCameraNode["NearClip"]) {
+				sceneCamera.NearClip = nearClipNode.as<float>();
+			}
+
+			if (const auto& farClipNode = sceneCameraNode["FarClip"]) {
+				sceneCamera.FarClip = farClipNode.as<float>();
+			}
+
+			if (const auto& movementSpeedNode = sceneCameraNode["MovementSpeed"]) {
+				sceneCamera.MovementSpeed = movementSpeedNode.as<float>();
+			}
+
+			if (const auto& fastMovementSpeedNode = sceneCameraNode["FastMovementSpeed"]) {
+				sceneCamera.FastMovementSpeed = fastMovementSpeedNode.as<float>();
+			}
+
+			if (const auto& rotationSpeedNode = sceneCameraNode["RotationSpeed"]) {
+				sceneCamera.RotationSpeed = rotationSpeedNode.as<float>();
+			}
+
+			if (const auto& zoomSpeedNode = sceneCameraNode["ZoomSpeed"]) {
+				sceneCamera.ZoomSpeed = zoomSpeedNode.as<float>();
+			}
+
+			if (const auto& smoothingNode = sceneCameraNode["Smoothing"]) {
+				sceneCamera.Smoothing = smoothingNode.as<float>();
+			}
+
+			if (const auto& invertZoomNode = sceneCameraNode["InvertZoom"]) {
+				sceneCamera.InvertZoom = invertZoomNode.as<bool>();
+			}
+		}
+
 		if (const auto& windowsNode = editorNode["Windows"]) {
 			auto& windows = editor.Windows;
 
@@ -387,6 +569,10 @@ void SettingsSerializer::DeserializeEditorSettings(const YAML::Node& settingsNod
 
 			if (const auto& showViewportNode = windowsNode["ShowViewport"]) {
 				windows.ShowViewport = showViewportNode.as<bool>();
+			}
+
+			if (const auto& showGameNode = windowsNode["ShowGame"]) {
+				windows.ShowGame = showGameNode.as<bool>();
 			}
 		}
 

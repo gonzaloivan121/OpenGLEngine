@@ -1,7 +1,7 @@
 #include "Core/Application/Application.h"
 #include "Core/EntryPoint.h"
 
-#include "Core/Settings/SettingsManager.h"
+#include "Core/Settings/Manager/SettingsManager.h"
 
 #include "Layers/Layers.h"
 

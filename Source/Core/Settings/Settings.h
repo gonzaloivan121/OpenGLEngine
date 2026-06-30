@@ -14,6 +14,9 @@ enum class Category {
 	/// @brief General settings related to the application, such as name, version, and startup configuration.
 	Application,
 
+	/// @brief Settings related to audio configuration, including input/output devices and volume levels.
+	Audio,
+
 	/// @brief Settings specific to the editor interface, including appearance and auto-save options.
 	Editor,
 
@@ -191,6 +194,83 @@ struct ApplicationSettings {
 	bool LogToFile = false;
 };
 
+struct VolumeSettings {
+	/// @brief The master volume level for the application, which controls the overall audio output.
+	float Master = 1.0f;
+
+	/// @brief The volume level for ambient sounds in the application, which can include background music or environmental sounds.
+	float Ambience = 1.0f;
+
+	/// @brief The volume level for sound effects in the application, which can include game sounds, notifications, or other audio cues.
+	float Effects = 1.0f;
+
+	/// @brief The volume level for music in the application, which can include background tracks or theme music.
+	float Music = 1.0f;
+
+	/// @brief The volume level for voice audio in the application, which can include character dialogue or voiceovers.
+	float Voices = 1.0f;
+
+	/// @brief A boolean value that indicates whether all audio output should be muted, effectively silencing the application.
+	bool MuteAll = false;
+};
+
+/**
+ * Represents the device settings for audio input/output, including device IDs, sample rate, buffer size, and pass-through option.
+ */
+enum class SampleRate {
+	SR_44100 = 44100,
+	SR_48000 = 48000,
+	SR_88200 = 88200,
+	SR_96000 = 96000,
+	SR_176400 = 176400,
+	SR_192000 = 192000
+};
+
+/**
+ * Represents the buffer size settings for audio processing, which determine the number of audio samples processed in each audio callback.
+ */
+enum class BufferSize {
+	BS_16 = 16,
+	BS_32 = 32,
+	BS_48 = 48,
+	BS_64 = 64,
+	BS_96 = 96,
+	BS_128 = 128,
+	BS_160 = 160,
+	BS_192 = 192,
+	BS_256 = 256,
+	BS_512 = 512,
+	BS_1024 = 1024
+};
+
+/**
+ * Represents the settings for audio input/output devices, sample rate, buffer size, and pass-through option.
+ */
+struct DeviceSettings {
+	/// @brief The ID of the input audio device to be used for capturing audio input, such as a microphone.
+	int InputDeviceID = -1;
+
+	/// @brief The ID of the output audio device to be used for audio playback, such as speakers or headphones.
+	int OutputDeviceID = -1;
+
+	/// @brief The sample rate for audio processing, which determines the number of audio samples captured or played back per second.
+	SampleRate SampleRate = SampleRate::SR_48000;
+
+	/// @brief The buffer size for audio processing, which determines the number of audio samples processed in each audio callback.
+	BufferSize BufferSize = BufferSize::BS_256;
+
+	/// @brief A boolean value that indicates whether audio input should be passed through to the output, allowing users to hear their own voice or other input audio in real-time.
+	bool PassThrough = false;
+};
+
+struct AudioSettings {
+	/// @brief The volume settings that provide control over the master volume and individual audio category volumes, allowing users to adjust the audio output levels for different types of sounds in the application.
+	VolumeSettings Volume;
+
+	/// @brief The device settings that provide configuration options for audio input/output devices, sample rate, and buffer size, allowing users to select their preferred audio hardware and performance settings.
+	DeviceSettings Device;
+};
+
 /**
  * Represents the different editor themes available for the application.
  * 
@@ -244,6 +324,11 @@ enum class EditorTheme {
 	Windark
 };
 
+/**
+ * Represents the settings specific to the Project window in the editor, including icon size and padding.
+ * 
+ * The Project window settings allow users to customize the appearance and layout of the Project window in the editor interface, affecting how project assets are displayed and organized.
+ */
 struct ProjectWindowSettings {
 	/// @brief The size of project icons displayed in the editor interface, which can affect the visibility and appearance of project assets.
 	float IconSize = 96.0f;
@@ -275,6 +360,49 @@ struct AppearanceSettings {
 };
 
 /**
+ * Represents the editor scene camera settings used by the Scene viewport.
+ *
+ * These values control the live camera pose and navigation behavior inside the Scene view.
+ */
+struct SceneCameraSettings {
+	/// @brief The current world-space camera position.
+	glm::vec3 Position = glm::vec3(0.0f, 1.5f, 5.0f);
+
+	/// @brief The current yaw angle in degrees.
+	float Yaw = -90.0f;
+
+	/// @brief The current pitch angle in degrees.
+	float Pitch = -10.0f;
+
+	/// @brief The field of view in degrees.
+	float FOV = 60.0f;
+
+	/// @brief The near clipping plane.
+	float NearClip = 0.1f;
+
+	/// @brief The far clipping plane.
+	float FarClip = 1000.0f;
+
+	/// @brief Speed multiplier for panning/movement. Higher values move the view faster.
+	float MovementSpeed = 2.0f;
+
+	/// @brief Speed multiplier for fast panning/movement (Shift key). Higher values move the view faster.
+	float FastMovementSpeed = 5.0f;
+
+	/// @brief Speed multiplier for rotation (mouse look). Higher values rotate faster.
+	float RotationSpeed = 2.0f;
+
+	/// @brief Speed multiplier for zooming (scroll wheel). Higher values zoom faster.
+	float ZoomSpeed = 2.0f;
+
+	/// @brief Smoothing factor for parameter interpolation. Higher values produce snappier, faster transitions.
+	float Smoothing = 5.0f;
+
+	/// @brief When enabled, the scroll wheel zoom direction is reversed.
+	bool InvertZoom = false;
+};
+
+/**
  * Represents the default visibility of editor windows on startup.
  */
 struct WindowsSettings {
@@ -298,6 +426,9 @@ struct WindowsSettings {
 
 	/// @brief Whether the Viewport window is visible on startup.
 	bool ShowViewport = true;
+
+	/// @brief Whether the Game window is visible on startup.
+	bool ShowGame = true;
 };
 
 /**
@@ -308,6 +439,9 @@ struct WindowsSettings {
 struct EditorSettings {
 	/// @brief The appearance settings that allow users to customize the visual aspects of the editor interface, such as the theme, font size, UI scale, and column width.
 	AppearanceSettings Appearance;
+
+	/// @brief The live scene camera settings used by the Scene viewport.
+	SceneCameraSettings SceneCamera;
 
 	/// @brief The default visibility of editor windows on startup.
 	WindowsSettings Windows;
@@ -361,6 +495,9 @@ struct ExportSettings {
 struct Settings {
 	/// @brief The application settings that provide general configuration options for the application, such as its name, version, and behavior on startup.
 	ApplicationSettings Application;
+
+	/// @brief The audio settings that provide configuration options for audio input/output devices, volume levels, and other audio-related settings.
+	AudioSettings Audio;
 
 	/// @brief The rendering settings that determine how the application renders graphics, including the rendering engine, resolution, window mode, and VSync.
 	RenderingSettings Rendering;

@@ -48,6 +48,13 @@ private:
 	void SerializeApplicationSettings(YAML::Emitter& out);
 
 	/**
+	 * Serializes the audio settings to a YAML emitter.
+	 * 
+	 * @param out The YAML emitter to which the audio settings will be serialized.
+	 */
+	void SerializeAudioSettings(YAML::Emitter& out);
+
+	/**
 	 * Serializes the editor settings to a YAML emitter.
 	 * 
 	 * @param out The YAML emitter to which the editor settings will be serialized.
@@ -83,6 +90,13 @@ private:
 	 * @param settingsNode The YAML node containing the application settings to be deserialized.
 	 */
 	void DeserializeApplicationSettings(const YAML::Node& settingsNode);
+
+	/**
+	 * Deserializes the audio settings from a YAML node and updates the current settings accordingly.
+	 *
+	 * @param settingsNode The YAML node containing the audio settings to be deserialized.
+	 */
+	void DeserializeAudioSettings(const YAML::Node& settingsNode);
 
 	/**
 	 * Deserializes the editor settings from a YAML node and updates the current settings accordingly.
