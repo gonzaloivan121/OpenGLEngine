@@ -69,6 +69,35 @@ struct ApplicationSpecification {
 };
 
 /**
+ * Represents runtime performance statistics gathered by the application loop.
+ */
+struct ApplicationRuntimeStats {
+	/// @brief Delta time of the current frame in milliseconds.
+	float FrameTimeMs = 0.0f;
+
+	/// @brief Instantaneous frames per second derived from the current frame time.
+	float FPS = 0.0f;
+
+	/// @brief Smoothed frame time in milliseconds.
+	float SmoothedFrameTimeMs = 0.0f;
+
+	/// @brief Smoothed frames per second.
+	float SmoothedFPS = 0.0f;
+
+	/// @brief Target frame budget in milliseconds (0 when uncapped).
+	float FrameBudgetMs = 0.0f;
+
+	/// @brief Frame budget usage in percentage (0 when uncapped).
+	float FrameBudgetUsage = 0.0f;
+
+	/// @brief Whether frame rate lock is enabled.
+	bool FrameRateLocked = false;
+
+	/// @brief Target frame rate when locking is enabled.
+	int TargetFrameRate = 0;
+};
+
+/**
  * The main application class that manages the application lifecycle, including initialization, running the main loop, handling layers, and shutting down.
  * It also provides static access to the application instance and the main window handle, as well as methods for setting VSync, changing the window title, and retrieving the application specification.
  * 
@@ -162,6 +191,11 @@ public:
 	 * @return A constant reference to the current `ApplicationSpecification` used by the application.
 	 */
 	const ApplicationSpecification& GetSpecification() const { return m_Specification; }
+
+	/**
+	 * Gets the latest runtime performance statistics captured from the main loop.
+	 */
+	const ApplicationRuntimeStats& GetRuntimeStats() const { return m_RuntimeStats; }
 private:
 	/**
 	 * Initializes the application, including setting up GLFW, creating the window, and loading resources.
@@ -270,6 +304,9 @@ private:
 
 	/// @brief The time of the last frame, used for calculating the time elapsed between frames (delta time).
 	float m_LastFrameTime = 0.0f;
+
+	/// @brief Runtime statistics updated each frame by the application loop.
+	ApplicationRuntimeStats m_RuntimeStats;
 
 	/// @brief The singleton instance of the application, which can be accessed globally using the `Get()` method.
 	inline static Application* s_Instance = nullptr;

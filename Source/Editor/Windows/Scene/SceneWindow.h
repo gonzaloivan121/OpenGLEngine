@@ -29,6 +29,7 @@ private:
 	void Draw();
 	void DrawImage();
 	void DrawGizmo();
+	void DrawSceneControlsPanel();
 	void EnsureFramebuffer();
 
 	static Ref<Framebuffer> CreateFramebuffer(uint32_t width, uint32_t height);
@@ -44,6 +45,9 @@ private:
 	bool m_WindowFocused = false;
 	uint32_t m_WindowWidth = 0;
 	uint32_t m_WindowHeight = 0;
+	ImVec2 m_SceneWindowPos = { 0.0f, 0.0f };
+	ImVec2 m_SceneWindowSize = { 0.0f, 0.0f };
+	bool m_ShowControlsPanel = true;
 
 	ImGuizmo::OPERATION m_GizmoOperation = ImGuizmo::TRANSLATE;
 	ImGuizmo::MODE m_GizmoMode = ImGuizmo::WORLD;

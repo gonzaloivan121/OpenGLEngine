@@ -291,6 +291,24 @@ void SettingsSerializer::SerializeEditorSettings(YAML::Emitter& out) {
 		}
 		out << YAML::EndMap; // Windows
 
+		out << YAML::Key << "Statistics" << YAML::Value << YAML::BeginMap; // Statistics
+		{
+			const auto& statistics = editor.Statistics;
+			out << YAML::Key << "SamplingIntervalMs" << YAML::Value << statistics.SamplingIntervalMs;
+			out << YAML::Key << "HistorySize" << YAML::Value << statistics.HistorySize;
+			out << YAML::Key << "ActivePanel" << YAML::Value << statistics.ActivePanel;
+			out << YAML::Key << "StartPaused" << YAML::Value << statistics.StartPaused;
+			out << YAML::Key << "ShowPerformance" << YAML::Value << statistics.ShowPerformance;
+			out << YAML::Key << "ShowRenderer" << YAML::Value << statistics.ShowRenderer;
+			out << YAML::Key << "ShowScene" << YAML::Value << statistics.ShowScene;
+			out << YAML::Key << "ShowLighting" << YAML::Value << statistics.ShowLighting;
+			out << YAML::Key << "ShowMemory" << YAML::Value << statistics.ShowMemory;
+			out << YAML::Key << "ShowAudio" << YAML::Value << statistics.ShowAudio;
+			out << YAML::Key << "ShowInput" << YAML::Value << statistics.ShowInput;
+			out << YAML::Key << "ShowSystem" << YAML::Value << statistics.ShowSystem;
+		}
+		out << YAML::EndMap; // Statistics
+
 		out << YAML::Key << "AutoSaveInterval" << YAML::Value << editor.AutoSaveInterval;
 	}
 	out << YAML::EndMap; // Editor
@@ -573,6 +591,58 @@ void SettingsSerializer::DeserializeEditorSettings(const YAML::Node& settingsNod
 
 			if (const auto& showStatisticsNode = windowsNode["ShowStatistics"]) {
 				windows.ShowStatistics = showStatisticsNode.as<bool>();
+			}
+		}
+
+		if (const auto& statisticsNode = editorNode["Statistics"]) {
+			auto& statistics = editor.Statistics;
+
+			if (const auto& samplingIntervalNode = statisticsNode["SamplingIntervalMs"]) {
+				statistics.SamplingIntervalMs = samplingIntervalNode.as<float>();
+			}
+
+			if (const auto& historySizeNode = statisticsNode["HistorySize"]) {
+				statistics.HistorySize = historySizeNode.as<int>();
+			}
+
+			if (const auto& activePanelNode = statisticsNode["ActivePanel"]) {
+				statistics.ActivePanel = activePanelNode.as<int>();
+			}
+
+			if (const auto& startPausedNode = statisticsNode["StartPaused"]) {
+				statistics.StartPaused = startPausedNode.as<bool>();
+			}
+
+			if (const auto& showPerformanceNode = statisticsNode["ShowPerformance"]) {
+				statistics.ShowPerformance = showPerformanceNode.as<bool>();
+			}
+
+			if (const auto& showRendererNode = statisticsNode["ShowRenderer"]) {
+				statistics.ShowRenderer = showRendererNode.as<bool>();
+			}
+
+			if (const auto& showSceneNode = statisticsNode["ShowScene"]) {
+				statistics.ShowScene = showSceneNode.as<bool>();
+			}
+
+			if (const auto& showLightingNode = statisticsNode["ShowLighting"]) {
+				statistics.ShowLighting = showLightingNode.as<bool>();
+			}
+
+			if (const auto& showMemoryNode = statisticsNode["ShowMemory"]) {
+				statistics.ShowMemory = showMemoryNode.as<bool>();
+			}
+
+			if (const auto& showAudioNode = statisticsNode["ShowAudio"]) {
+				statistics.ShowAudio = showAudioNode.as<bool>();
+			}
+
+			if (const auto& showInputNode = statisticsNode["ShowInput"]) {
+				statistics.ShowInput = showInputNode.as<bool>();
+			}
+
+			if (const auto& showSystemNode = statisticsNode["ShowSystem"]) {
+				statistics.ShowSystem = showSystemNode.as<bool>();
 			}
 		}
 

@@ -256,6 +256,24 @@ void Application::Run() {
 		Timestep timestep = time - m_LastFrameTime;
 		m_LastFrameTime = time;
 
+		m_RuntimeStats.FrameTimeMs = timestep.GetMilliseconds();
+		m_RuntimeStats.FPS = m_RuntimeStats.FrameTimeMs > 0.0f ? (1000.0f / m_RuntimeStats.FrameTimeMs) : 0.0f;
+		if (m_RuntimeStats.SmoothedFrameTimeMs <= 0.0f) {
+			m_RuntimeStats.SmoothedFrameTimeMs = m_RuntimeStats.FrameTimeMs;
+		} else {
+			m_RuntimeStats.SmoothedFrameTimeMs = (m_RuntimeStats.SmoothedFrameTimeMs * 0.9f) + (m_RuntimeStats.FrameTimeMs * 0.1f);
+		}
+		m_RuntimeStats.SmoothedFPS = m_RuntimeStats.SmoothedFrameTimeMs > 0.0f ? (1000.0f / m_RuntimeStats.SmoothedFrameTimeMs) : 0.0f;
+		m_RuntimeStats.FrameRateLocked = m_Specification.LockFramerate;
+		m_RuntimeStats.TargetFrameRate = m_Specification.TargetFrameRate;
+		if (m_Specification.LockFramerate && m_Specification.TargetFrameRate > 0) {
+			m_RuntimeStats.FrameBudgetMs = 1000.0f / static_cast<float>(m_Specification.TargetFrameRate);
+			m_RuntimeStats.FrameBudgetUsage = (m_RuntimeStats.FrameTimeMs / m_RuntimeStats.FrameBudgetMs) * 100.0f;
+		} else {
+			m_RuntimeStats.FrameBudgetMs = 0.0f;
+			m_RuntimeStats.FrameBudgetUsage = 0.0f;
+		}
+
 		// Begin the UI frame, which will prepare for rendering the user interface for this frame.
 		UI::Begin();
 

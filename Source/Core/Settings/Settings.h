@@ -432,6 +432,33 @@ struct WindowsSettings {
 };
 
 /**
+ * Represents user preferences for the Statistics window.
+ */
+struct StatisticsWindowSettings {
+	/// @brief Sampling interval in milliseconds used by the statistics window aggregator.
+	float SamplingIntervalMs = 250.0f;
+
+	/// @brief Number of samples stored in timeline history.
+	int HistorySize = 240;
+
+	/// @brief Last selected detail panel index.
+	int ActivePanel = 0;
+
+	/// @brief Whether live sampling starts paused.
+	bool StartPaused = false;
+
+	/// @brief Per-section visibility toggles.
+	bool ShowPerformance = true;
+	bool ShowRenderer = true;
+	bool ShowScene = true;
+	bool ShowLighting = true;
+	bool ShowMemory = true;
+	bool ShowAudio = true;
+	bool ShowInput = true;
+	bool ShowSystem = true;
+};
+
+/**
  * Represents the editor settings for the application, including appearance settings and auto-save interval.
  * 
  * The editor settings provide configuration options specific to the editor interface, allowing users to customize the appearance and behavior of the editor according to their preferences.
@@ -445,6 +472,9 @@ struct EditorSettings {
 
 	/// @brief The default visibility of editor windows on startup.
 	WindowsSettings Windows;
+
+	/// @brief Preferences for the Statistics window UI and sampling behavior.
+	StatisticsWindowSettings Statistics;
 
 	/// @brief The interval in minutes for the auto-save feature, which determines how frequently the editor automatically saves the user's work to prevent data loss.
 	int AutoSaveInterval = 10;

@@ -9,6 +9,7 @@
 #include <glm/gtc/matrix_inverse.hpp>
 
 #include <array>
+#include <chrono>
 #include <fstream>
 #include <sstream>
 #include <unordered_map>
@@ -273,6 +274,12 @@ void Renderer::Submit(Scene& scene) {
 }
 
 void Renderer::Submit(Scene& scene, const RenderRequest& request, RenderResult* result) {
+	s_Stats = RendererStats{};
+	s_Stats.MaxLightsPerType = static_cast<uint32_t>(MAX_LIGHTS);
+	s_Stats.UsedOverrideCamera = request.Source == CameraSource::Override;
+	s_Stats.ShaderCacheSize = m_ShaderCache.size();
+	s_Stats.GPUTimingAvailable = false;
+
 	if (result) {
 		*result = RenderResult{};
 	}
@@ -281,8 +288,12 @@ void Renderer::Submit(Scene& scene, const RenderRequest& request, RenderResult* 
 		return;
 	}
 
+	const auto submitStart = std::chrono::steady_clock::now();
+
 	s_Framebuffer = request.TargetFramebuffer;
 	const Ref<Framebuffer>& targetFramebuffer = request.TargetFramebuffer;
+	s_Stats.OutputWidth = targetFramebuffer->GetWidth();
+	s_Stats.OutputHeight = targetFramebuffer->GetHeight();
 
 	// Sync G-Buffer dimensions to the output framebuffer
 	const uint32_t fbWidth  = targetFramebuffer->GetWidth();
@@ -290,22 +301,43 @@ void Renderer::Submit(Scene& scene, const RenderRequest& request, RenderResult* 
 	if (s_GBuffer->GetWidth() != fbWidth || s_GBuffer->GetHeight() != fbHeight) {
 		s_GBuffer->Resize(fbWidth, fbHeight);
 	}
+	s_Stats.GBufferWidth = s_GBuffer->GetWidth();
+	s_Stats.GBufferHeight = s_GBuffer->GetHeight();
 
+	const auto geometryStart = std::chrono::steady_clock::now();
 	if (!GeometryPass(scene, request, targetFramebuffer, result)) {
+		const auto geometryEnd = std::chrono::steady_clock::now();
+		s_Stats.GeometryPassCPUTimeMs = std::chrono::duration<float, std::milli>(geometryEnd - geometryStart).count();
+		s_Stats.TotalCPUTimeMs = std::chrono::duration<float, std::milli>(geometryEnd - submitStart).count();
 		ClearFramebuffer(targetFramebuffer, glm::vec4(0.0f, 0.0f, 0.0f, 1.0f));
 		if (result) {
 			result->Rendered = false;
 		}
+		s_Stats.Rendered = false;
 		return;
 	}
+	const auto geometryEnd = std::chrono::steady_clock::now();
+	s_Stats.GeometryPassCPUTimeMs = std::chrono::duration<float, std::milli>(geometryEnd - geometryStart).count();
 
+	const auto backgroundStart = std::chrono::steady_clock::now();
 	BackgroundPass(targetFramebuffer);
+	const auto backgroundEnd = std::chrono::steady_clock::now();
+	s_Stats.BackgroundPassCPUTimeMs = std::chrono::duration<float, std::milli>(backgroundEnd - backgroundStart).count();
+
+	const auto lightingStart = std::chrono::steady_clock::now();
 	LightingPass(scene, targetFramebuffer);
+	const auto lightingEnd = std::chrono::steady_clock::now();
+	s_Stats.LightingPassCPUTimeMs = std::chrono::duration<float, std::milli>(lightingEnd - lightingStart).count();
+
 	targetFramebuffer->Unbind();
 
 	if (result) {
 		result->Rendered = true;
 	}
+
+	s_Stats.Rendered = true;
+	s_Stats.ShaderCacheSize = m_ShaderCache.size();
+	s_Stats.TotalCPUTimeMs = std::chrono::duration<float, std::milli>(lightingEnd - submitStart).count();
 }
 
 bool Renderer::GeometryPass(Scene& scene, const RenderRequest& request, const Ref<Framebuffer>& outputFramebuffer, RenderResult* result) {
@@ -329,6 +361,7 @@ bool Renderer::GeometryPass(Scene& scene, const RenderRequest& request, const Re
 		view = request.OverrideCamera.View;
 		projection = request.OverrideCamera.Projection;
 		camPos = request.OverrideCamera.Position;
+		s_Stats.HasActivePrimaryCamera = true;
 	} else {
 		for (const auto& id : scene.GetEntityIDs()) {
 			Entity entity = scene.GetEntity(id);
@@ -348,12 +381,15 @@ bool Renderer::GeometryPass(Scene& scene, const RenderRequest& request, const Re
 			if (result) {
 				result->HasActivePrimaryCamera = false;
 			}
+			s_Stats.HasActivePrimaryCamera = false;
 			return false;
 		}
 
 		if (result) {
 			result->HasActivePrimaryCamera = hasPrimaryCamera;
 		}
+
+		s_Stats.HasActivePrimaryCamera = hasPrimaryCamera;
 	}
 
 	s_SceneData.View           = view;
@@ -392,6 +428,14 @@ bool Renderer::GeometryPass(Scene& scene, const RenderRequest& request, const Re
 			continue;
 		}
 
+		s_Stats.RenderedEntities++;
+		if (material) {
+			s_Stats.MaterialBoundEntities++;
+		}
+		s_Stats.VertexCount += mesh->Mesh->GetVertexCount();
+		s_Stats.TriangleCount += mesh->Mesh->GetTriangleCount();
+		s_Stats.IndexCount += mesh->Mesh->GetTriangleIndexCount();
+
 		shader->Bind();
 		shader->SetUniform("u_Model",          transform->GetTransform());
 		shader->SetUniform("u_View",           s_SceneData.View);
@@ -412,6 +456,8 @@ bool Renderer::GeometryPass(Scene& scene, const RenderRequest& request, const Re
 
 		if (const auto& vertexArray = mesh->Mesh->GetVertexArray()) {
 			RenderCommand::DrawIndexed(vertexArray);
+			s_Stats.DrawCalls++;
+			s_Stats.MeshDrawCalls++;
 		}
 	}
 
@@ -438,6 +484,8 @@ void Renderer::BackgroundPass(const Ref<Framebuffer>& outputFramebuffer) {
 
 	if (const auto& vertexArray = m_QuadMesh->GetVertexArray()) {
 		RenderCommand::DrawIndexed(vertexArray);
+		s_Stats.DrawCalls++;
+		s_Stats.FullscreenDrawCalls++;
 	}
 
 	RenderCommand::EnableDepthTest(true);
@@ -517,6 +565,7 @@ void Renderer::LightingPass(Scene& scene, const Ref<Framebuffer>& outputFramebuf
 
 	// Upload directional lights
 	m_LightingShader->SetUniform("u_DirLightCount", static_cast<int>(dirDirections.size()));
+	s_Stats.DirectionalLights = static_cast<uint32_t>(dirDirections.size());
 	if (!dirDirections.empty()) {
 		m_LightingShader->UploadUniformVec3Array("u_DirLightDirection", dirDirections.data(), static_cast<uint32_t>(dirDirections.size()));
 		m_LightingShader->UploadUniformVec3Array("u_DirLightColor",     dirColors.data(),     static_cast<uint32_t>(dirColors.size()));
@@ -525,6 +574,7 @@ void Renderer::LightingPass(Scene& scene, const Ref<Framebuffer>& outputFramebuf
 
 	// Upload point lights
 	m_LightingShader->SetUniform("u_PointLightCount", static_cast<int>(pointPositions.size()));
+	s_Stats.PointLights = static_cast<uint32_t>(pointPositions.size());
 	if (!pointPositions.empty()) {
 		m_LightingShader->UploadUniformVec3Array("u_PointLightPosition",  pointPositions.data(),  static_cast<uint32_t>(pointPositions.size()));
 		m_LightingShader->UploadUniformVec3Array("u_PointLightColor",     pointColors.data(),     static_cast<uint32_t>(pointColors.size()));
@@ -536,6 +586,7 @@ void Renderer::LightingPass(Scene& scene, const Ref<Framebuffer>& outputFramebuf
 
 	// Upload spot lights
 	m_LightingShader->SetUniform("u_SpotLightCount", static_cast<int>(spotPositions.size()));
+	s_Stats.SpotLights = static_cast<uint32_t>(spotPositions.size());
 	if (!spotPositions.empty()) {
 		m_LightingShader->UploadUniformVec3Array("u_SpotLightPosition",  spotPositions.data(),  static_cast<uint32_t>(spotPositions.size()));
 		m_LightingShader->UploadUniformVec3Array("u_SpotLightDirection", spotDirections.data(), static_cast<uint32_t>(spotDirections.size()));
@@ -549,7 +600,11 @@ void Renderer::LightingPass(Scene& scene, const Ref<Framebuffer>& outputFramebuf
 
 	if (const auto& vertexArray = m_QuadMesh->GetVertexArray()) {
 		RenderCommand::DrawIndexed(vertexArray);
+		s_Stats.DrawCalls++;
+		s_Stats.FullscreenDrawCalls++;
 	}
+
+	s_Stats.TotalLights = s_Stats.DirectionalLights + s_Stats.PointLights + s_Stats.SpotLights;
 
 	RenderCommand::EnableDepthTest(true);
 }

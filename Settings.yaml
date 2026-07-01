@@ -35,11 +35,11 @@ Settings:
         IconPadding: 24
     SceneCamera:
       Position:
-        - 0
-        - 0
-        - 5
-      Yaw: -90
-      Pitch: 0
+        - 5.6663857
+        - 0.23028676
+        - -1.8037461
+      Yaw: -197.92221
+      Pitch: -3.190384
       FOV: 60
       NearClip: 0.1
       FarClip: 1000
@@ -58,6 +58,19 @@ Settings:
       ShowScene: true
       ShowSettings: false
       ShowStatistics: false
+    Statistics:
+      SamplingIntervalMs: 16
+      HistorySize: 240
+      ActivePanel: 7
+      StartPaused: false
+      ShowPerformance: true
+      ShowRenderer: true
+      ShowScene: true
+      ShowLighting: true
+      ShowMemory: true
+      ShowAudio: true
+      ShowInput: true
+      ShowSystem: true
     AutoSaveInterval: 10
   Rendering:
     Engine: OpenGL

@@ -10,9 +10,51 @@
 #include <filesystem>
 #include <unordered_map>
 #include <string>
+#include <cstdint>
 
 class Renderer {
 public:
+	struct RendererStats {
+		bool Rendered = false;
+		bool HasActivePrimaryCamera = true;
+		bool UsedOverrideCamera = false;
+
+		uint32_t OutputWidth = 0;
+		uint32_t OutputHeight = 0;
+		uint32_t GBufferWidth = 0;
+		uint32_t GBufferHeight = 0;
+
+		uint32_t DrawCalls = 0;
+		uint32_t MeshDrawCalls = 0;
+		uint32_t FullscreenDrawCalls = 0;
+
+		uint32_t RenderedEntities = 0;
+		uint32_t MaterialBoundEntities = 0;
+
+		uint64_t VertexCount = 0;
+		uint64_t TriangleCount = 0;
+		uint64_t IndexCount = 0;
+
+		uint32_t DirectionalLights = 0;
+		uint32_t PointLights = 0;
+		uint32_t SpotLights = 0;
+		uint32_t TotalLights = 0;
+		uint32_t MaxLightsPerType = 0;
+
+		size_t ShaderCacheSize = 0;
+
+		float GeometryPassCPUTimeMs = 0.0f;
+		float BackgroundPassCPUTimeMs = 0.0f;
+		float LightingPassCPUTimeMs = 0.0f;
+		float TotalCPUTimeMs = 0.0f;
+
+		bool GPUTimingAvailable = false;
+		float GeometryPassGPUTimeMs = 0.0f;
+		float BackgroundPassGPUTimeMs = 0.0f;
+		float LightingPassGPUTimeMs = 0.0f;
+		float TotalGPUTimeMs = 0.0f;
+	};
+
 	struct CameraData {
 		glm::mat4 View = glm::mat4(1.0f);
 		glm::mat4 Projection = glm::mat4(1.0f);
@@ -54,6 +96,7 @@ public:
 	static void Submit(Scene& scene, const RenderRequest& request, RenderResult* result = nullptr);
 	static void ClearFramebuffer(const Ref<Framebuffer>& framebuffer, const glm::vec4& color);
 	static void ExportFrame(const std::filesystem::path& filepath);
+	static const RendererStats& GetStats() { return s_Stats; }
 
 	static Ref<Framebuffer> GetFramebuffer() { return s_Framebuffer; }
 private:
@@ -78,4 +121,5 @@ private:
 
 	inline static SceneData s_SceneData;
 	inline static std::unordered_map<std::string, Ref<Shader>> m_ShaderCache;
+	inline static RendererStats s_Stats;
 };

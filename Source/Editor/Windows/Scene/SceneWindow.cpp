@@ -45,6 +45,22 @@ namespace {
 				break;
 		}
 	}
+
+	bool DrawSegmentButton(const char* label, bool isActive, const glm::vec2& size = glm::vec2(0.0f, 0.0f)) {
+		if (isActive) {
+			ImGui::PushStyleColor(ImGuiCol_Button, ImGui::GetStyleColorVec4(ImGuiCol_Header));
+			ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImGui::GetStyleColorVec4(ImGuiCol_HeaderHovered));
+			ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImGui::GetStyleColorVec4(ImGuiCol_HeaderActive));
+		}
+
+		const bool clicked = UI::Button(label, size);
+
+		if (isActive) {
+			ImGui::PopStyleColor(3);
+		}
+
+		return clicked;
+	}
 }
 
 SceneWindow::SceneWindow(bool& isOpen, Scene& scene, UUID& selectedEntityID)
@@ -93,38 +109,27 @@ void SceneWindow::OnUIRender() {
 	if (ImGui::Begin("Scene", &m_IsOpen)) {
 		Update();
 		Draw();
+
+		ImGui::SetCursorScreenPos({ m_SceneWindowPos.x + m_SceneWindowSize.x - 92.0f, m_SceneWindowPos.y + 8.0f });
+		if (UI::Button("Controls", { 84.0f, 24.0f })) {
+			m_ShowControlsPanel = !m_ShowControlsPanel;
+		}
 	}
 
 	ImGui::End();
 	ImGui::PopStyleVar();
 
-	if (ImGui::Begin("Scene Controls", &m_IsOpen)) {
-		if (UI::Button("Translate")) {
-			m_GizmoOperation = ImGuizmo::TRANSLATE;
-		}
-
-		if (UI::Button("Rotate")) {
-			m_GizmoOperation = ImGuizmo::ROTATE;
-		}
-
-		if (UI::Button("Scale")) {
-			m_GizmoOperation = ImGuizmo::SCALE;
-		}
-
-		if (UI::Button("Local")) {
-			m_GizmoMode = ImGuizmo::LOCAL;
-		}
-
-		if (UI::Button("World")) {
-			m_GizmoMode = ImGuizmo::WORLD;
-		}
+	if (m_ShowControlsPanel) {
+		ImGui::SetNextWindowPos({ m_SceneWindowPos.x + m_SceneWindowSize.x + 12.0f, m_SceneWindowPos.y + 12.0f }, ImGuiCond_FirstUseEver);
+		DrawSceneControlsPanel();
 	}
-	ImGui::End();
 }
 
 void SceneWindow::Update() {
 	const ImVec2 windowSize = ImGui::GetContentRegionAvail();
 	const auto& settings = SettingsManager::Get().Rendering.Resolution;
+	m_SceneWindowPos = ImGui::GetWindowPos();
+	m_SceneWindowSize = ImGui::GetWindowSize();
 
 	m_WindowWidth = static_cast<uint32_t>(std::max(0.0f, windowSize.x * settings.Scale));
 	m_WindowHeight = static_cast<uint32_t>(std::max(0.0f, windowSize.y * settings.Scale));
@@ -192,7 +197,6 @@ void SceneWindow::DrawGizmo() {
 	ImGuizmo::SetDrawlist();
 
 	ImVec2 windowPos = ImGui::GetWindowPos();
-	ImVec2 contentMin = ImGui::GetWindowContentRegionMin();
 	float windowWidth = ImGui::GetWindowWidth();
 	float windowHeight = ImGui::GetWindowHeight();
 
@@ -218,6 +222,44 @@ void SceneWindow::DrawGizmo() {
 	if (ImGuizmo::IsUsing()) {
 		ApplyTransformMatrix(*transformComponent, transform, m_GizmoOperation);
 	}
+}
+
+void SceneWindow::DrawSceneControlsPanel() {
+	ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, { 10.0f, 10.0f });
+	ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 8.0f);
+	ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 6.0f);
+
+	const ImGuiWindowFlags panelFlags = ImGuiWindowFlags_NoDocking | ImGuiWindowFlags_AlwaysAutoResize;
+	if (ImGui::Begin("Scene Controls", &m_ShowControlsPanel, panelFlags)) {
+		ImGui::TextUnformatted("Transform");
+		if (DrawSegmentButton("T", m_GizmoOperation == ImGuizmo::TRANSLATE, { 34.0f, 24.0f })) {
+			m_GizmoOperation = ImGuizmo::TRANSLATE;
+		}
+		ImGui::SameLine();
+		if (DrawSegmentButton("R", m_GizmoOperation == ImGuizmo::ROTATE, { 34.0f, 24.0f })) {
+			m_GizmoOperation = ImGuizmo::ROTATE;
+		}
+		ImGui::SameLine();
+		if (DrawSegmentButton("S", m_GizmoOperation == ImGuizmo::SCALE, { 34.0f, 24.0f })) {
+			m_GizmoOperation = ImGuizmo::SCALE;
+		}
+
+		ImGui::Spacing();
+		ImGui::Separator();
+		ImGui::Spacing();
+
+		ImGui::TextUnformatted("Space");
+		if (DrawSegmentButton("Local", m_GizmoMode == ImGuizmo::LOCAL, { 58.0f, 24.0f })) {
+			m_GizmoMode = ImGuizmo::LOCAL;
+		}
+		ImGui::SameLine();
+		if (DrawSegmentButton("World", m_GizmoMode == ImGuizmo::WORLD, { 58.0f, 24.0f })) {
+			m_GizmoMode = ImGuizmo::WORLD;
+		}
+	}
+	ImGui::End();
+
+	ImGui::PopStyleVar(3);
 }
 
 void SceneWindow::EnsureFramebuffer() {

@@ -50,7 +50,7 @@ void EditorLayer::OnCreate() {
 	m_Windows.emplace_back(std::move(sceneWindow));
 
 	m_Windows.emplace_back(CreateScope<SettingsWindow>(SettingsManager::Get().Editor.Windows.ShowSettings));
-	m_Windows.emplace_back(CreateScope<StatisticsWindow>(SettingsManager::Get().Editor.Windows.ShowStatistics));
+	m_Windows.emplace_back(CreateScope<StatisticsWindow>(SettingsManager::Get().Editor.Windows.ShowStatistics, m_Scene));
 }
 
 void EditorLayer::OnAttach() {
